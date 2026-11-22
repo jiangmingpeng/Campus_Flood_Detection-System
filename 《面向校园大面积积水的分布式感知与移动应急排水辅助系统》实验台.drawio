@@ -1,0 +1,262 @@
+<mxfile host="localhost">
+  <diagram name="Page-1" id="page-1">
+    <mxGraphModel dx="683" dy="927" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="qTitle" parent="1" style="text;fontSize=15;fontStyle=1;align=left;verticalAlign=middle;whiteSpace=wrap;html=1;" value="图2｜实验台俯视结构示意（空间拓扑严格对齐）" vertex="1">
+          <mxGeometry height="30" width="760" x="1576" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="qA" parent="1" style="rounded=0;fillColor=#ffffff;strokeColor=#555555;dashed=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontStyle=1;fontSize=12;whiteSpace=wrap;html=1;" value="A 区｜宿舍门口及自行车停放区域（重点深积水）" vertex="1">
+          <mxGeometry height="300" width="290" x="1499" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="qA_Bldg" parent="1" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;whiteSpace=wrap;html=1;" value="宿舍建筑&#xa;模型板" vertex="1">
+          <mxGeometry height="252" width="72" x="1524" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="qA_Bike" parent="1" style="rounded=0;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#444444;fontSize=10;whiteSpace=wrap;html=1;" value="自行车停放区" vertex="1">
+          <mxGeometry height="252" width="40" x="1611" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="qA_Tank" parent="1" style="rounded=0;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;fontColor=#7b1f1f;whiteSpace=wrap;html=1;" value="A 深水槽（硬质路面）历史深水&lt;br&gt;防溢流 / 注水口 / 可调排水口" vertex="1">
+          <mxGeometry height="252" width="113" x="1665" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="qS1" parent="1" style="rounded=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" value="S1" vertex="1">
+          <mxGeometry height="22" width="26" x="1708.5" y="163" as="geometry" />
+        </mxCell>
+        <mxCell id="qB" parent="1" style="rounded=0;fillColor=#ffffff;strokeColor=#555555;dashed=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontStyle=1;fontSize=12;whiteSpace=wrap;html=1;" value="B 区｜小树林草坪（大面积浅层积水）" vertex="1">
+          <mxGeometry height="300" width="300" x="1854" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="qB_Lawn" parent="1" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;verticalAlign=bottom;spacingBottom=2;whiteSpace=wrap;html=1;" value="草坪面板（可拆卸，含轻微起伏与局部凹陷）" vertex="1">
+          <mxGeometry height="252" width="332" x="1838" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="qB_Flood" parent="1" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;fontColor=#8a5a00;whiteSpace=wrap;html=1;" value="草坪(浅层积水,含地势起伏)" vertex="1">
+          <mxGeometry height="90" width="300" x="1856" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="qS3" parent="1" style="rounded=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" value="S3" vertex="1">
+          <mxGeometry height="22" width="26" x="2090" y="129" as="geometry" />
+        </mxCell>
+        <mxCell id="qB_Stone" parent="1" style="rounded=0;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#444444;fontSize=10;whiteSpace=wrap;html=1;" value="石块路（略高于草坪）" vertex="1">
+          <mxGeometry height="14" width="332" x="1838" y="307" as="geometry" />
+        </mxCell>
+        <mxCell id="qB_T1" parent="1" style="ellipse;fillColor=#b9dfa8;strokeColor=#6b9e52;fontSize=9;whiteSpace=wrap;html=1;" value="树" vertex="1">
+          <mxGeometry height="24" width="24" x="1886" y="137" as="geometry" />
+        </mxCell>
+        <mxCell id="qB_T2" parent="1" style="ellipse;fillColor=#b9dfa8;strokeColor=#6b9e52;fontSize=9;whiteSpace=wrap;html=1;" value="树" vertex="1">
+          <mxGeometry height="24" width="24" x="1959.5" y="161" as="geometry" />
+        </mxCell>
+        <mxCell id="qB_T3" parent="1" style="ellipse;fillColor=#b9dfa8;strokeColor=#6b9e52;fontSize=9;whiteSpace=wrap;html=1;" value="树" vertex="1">
+          <mxGeometry height="24" width="24" x="2066" y="159" as="geometry" />
+        </mxCell>
+        <mxCell id="qB_T4" parent="1" style="ellipse;fillColor=#b9dfa8;strokeColor=#6b9e52;fontSize=9;whiteSpace=wrap;html=1;" value="树" vertex="1">
+          <mxGeometry height="24" width="24" x="1929" y="112" as="geometry" />
+        </mxCell>
+        <mxCell id="qB_Note" parent="1" style="rounded=0;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=top;spacingLeft=5;fontSize=10;fontColor=#555555;whiteSpace=wrap;html=1;" value="低洼处（积水较深）&lt;br&gt;草坪边缘/较高处（浅或无水）" vertex="1">
+          <mxGeometry height="36" width="200" x="1954" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="qD" parent="1" style="rounded=0;fillColor=#ffffff;strokeColor=#555555;dashed=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontStyle=1;fontSize=12;whiteSpace=wrap;html=1;" value="D 区｜校园其他相对地势较高区域" vertex="1">
+          <mxGeometry height="150" width="170" x="2204" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="qD_Hill" parent="1" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;whiteSpace=wrap;html=1;" value="高地势平台（抬高）&#xa;地势较高、不易积水&#xa;具体建筑设施不在本图范围" vertex="1">
+          <mxGeometry height="100" width="146" x="2213" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="qDown" parent="1" style="rounded=0;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#444444;fontSize=10;whiteSpace=wrap;html=1;" value="下坡道路&#xa;（B 区右侧，可见高低差）" vertex="1">
+          <mxGeometry height="156" width="100" x="2212" y="204" as="geometry" />
+        </mxCell>
+        <mxCell id="qC" parent="1" style="rounded=0;fillColor=#ffffff;strokeColor=#555555;dashed=1;verticalAlign=top;align=right;spacingLeft=8;spacingTop=4;fontStyle=1;fontSize=12;whiteSpace=wrap;html=1;labelPosition=left;verticalLabelPosition=bottom;" value="C 区｜周边道路、候选车辆通行与停靠区域" vertex="1">
+          <mxGeometry height="160" width="912" x="1500" y="374" as="geometry" />
+        </mxCell>
+        <mxCell id="qC_Main" parent="1" style="rounded=0;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#444444;fontSize=10;verticalAlign=bottom;spacingBottom=2;whiteSpace=wrap;html=1;" value="校园主要道路（横向贯穿 A、B 区下方）" vertex="1">
+          <mxGeometry height="68" width="627" x="1577" y="388" as="geometry" />
+        </mxCell>
+        <mxCell id="qC_Flood" parent="1" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;fontColor=#8a5a00;whiteSpace=wrap;html=1;" value="道路浅层积水（独立浅水盘，可单独清空）对应图1浅层积水" vertex="1">
+          <mxGeometry height="44" width="250" x="1588" y="409" as="geometry" />
+        </mxCell>
+        <mxCell id="qC_Conn" parent="1" style="rounded=0;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#444444;fontSize=10;whiteSpace=wrap;html=1;" value="连接上面的道路" vertex="1">
+          <mxGeometry height="252" width="40" x="1793" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="qC_Cand1" parent="1" style="rounded=0;fillColor=none;strokeColor=#ff0000;strokeWidth=2;fontColor=#b00000;fontSize=10;whiteSpace=wrap;html=1;" value="候选停靠位①（消防车）" vertex="1">
+          <mxGeometry height="24" width="118" x="1623" y="382" as="geometry" />
+        </mxCell>
+        <mxCell id="qC_Cand2" parent="1" style="rounded=0;fillColor=none;strokeColor=#ff0000;strokeWidth=2;fontColor=#b00000;fontSize=10;whiteSpace=wrap;html=1;" value="候选停靠位②（消防车）" vertex="1">
+          <mxGeometry height="27" width="113" x="1915" y="379" as="geometry" />
+        </mxCell>
+        <mxCell id="qC_Dry" parent="1" style="rounded=0;fillColor=#60a917;strokeColor=#2D7600;strokeWidth=2;fontColor=#ffffff;fontSize=10;whiteSpace=wrap;html=1;" value="普通车辆可停&#xa;（相对干燥，不受积水影响）" vertex="1">
+          <mxGeometry height="56" width="150" x="2036" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="qC_Ring" parent="1" style="rounded=0;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#444444;fontSize=10;whiteSpace=wrap;html=1;" value="环形道路（右侧，简化）" vertex="1">
+          <mxGeometry height="120" width="120" x="2213" y="376" as="geometry" />
+        </mxCell>
+        <mxCell id="qPump" parent="1" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;fontColor=#7a5b00;fontStyle=1;whiteSpace=wrap;html=1;" value="移动式应急抽排模块（第一版 1 台，人工移动）&#xa;低压直流泵 / 流量传感器 / 电流检测 / MCU 泵控板 / 低水位停泵" vertex="1">
+          <mxGeometry height="80" width="290" x="1529" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="qRecv" parent="1" style="rounded=0;fillColor=#d5f5f5;strokeColor=#0e8088;strokeWidth=2;fontColor=#0b5c62;fontStyle=1;whiteSpace=wrap;html=1;" value="独立回收水箱&#xa;可拆卸排空 / 液位观察 / 防溢流" vertex="1">
+          <mxGeometry height="80" width="150" x="1911" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="qCtrl" parent="1" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontColor=#4b2f63;fontStyle=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;whiteSpace=wrap;html=1;" value="电子控制区（干燥区，与全部水槽物理隔离）" vertex="1">
+          <mxGeometry height="80" width="240" x="2148" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="qCtrl_L" parent="1" style="rounded=0;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;whiteSpace=wrap;html=1;" value="Linux 主控：多区数据接收 / 风险排序 / 抽排任务 / Web" vertex="1">
+          <mxGeometry height="18" width="220" x="2158" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="qCtrl_M" parent="1" style="rounded=0;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;whiteSpace=wrap;html=1;" value="MCU 感知节点 + MCU 泵控节点" vertex="1">
+          <mxGeometry height="18" width="220" x="2158" y="612" as="geometry" />
+        </mxCell>
+        <mxCell id="qHoseA" edge="1" parent="1" source="qPump" style="endArrow=block;strokeColor=#0e8088;strokeWidth=3;rounded=0;html=1;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;exitX=0;exitY=0.125;exitDx=0;exitDy=0;entryX=0.0885;entryY=1;entryDx=0;entryDy=0;" target="qA_Tank" value="抽水软管①（至 A 深水槽）">
+          <mxGeometry relative="1" x="0.401" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="570" />
+              <mxPoint x="1500" y="360" />
+              <mxPoint x="1680" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qHoseB" edge="1" parent="1" source="qPump" style="endArrow=block;strokeColor=#0e8088;strokeWidth=3;rounded=0;html=1;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;exitX=0;exitY=0.125;exitDx=0;exitDy=0;entryX=0;entryY=0.04762;entryDx=0;entryDy=0;" target="qB_Lawn" value="抽水软管②（至 B 低洼处）">
+          <mxGeometry relative="1" x="0.193" as="geometry">
+            <Array as="points">
+              <mxPoint x="1500" y="570" />
+              <mxPoint x="1500" y="60" />
+              <mxPoint x="1789.6" y="60" />
+              <mxPoint x="1789.6" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qDrain" edge="1" parent="1" source="qPump" style="endArrow=block;strokeWidth=3;edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#0e8088;html=1;" target="qRecv" value="排水">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qMv1" edge="1" parent="1" source="qPump" style="endArrow=open;strokeColor=#d6b656;strokeWidth=2;dashed=1;rounded=0;html=1;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;exitX=0.14138;exitY=0;exitDx=0;exitDy=0;entryX=0.31356;entryY=1;entryDx=0;entryDy=0;" target="qC_Cand1" value="人工移动候选路线①">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="qMv2" edge="1" parent="1" source="qPump" style="endArrow=open;strokeColor=#d6b656;strokeWidth=2;dashed=1;rounded=0;html=1;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.125;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="qC_Cand2" value="人工移动候选路线②">
+          <mxGeometry relative="1" x="-0.0236" as="geometry">
+            <Array as="points">
+              <mxPoint x="1880" y="570" />
+              <mxPoint x="1880" y="480" />
+              <mxPoint x="2193.2" y="480" />
+              <mxPoint x="2193.2" y="392.5" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qCommS1" edge="1" parent="1" source="qCtrl" style="endArrow=open;strokeColor=#9673a6;strokeWidth=2;dashed=1;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.125;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="qS1" value="">
+          <mxGeometry relative="1" x="-0.0038" as="geometry">
+            <Array as="points">
+              <mxPoint x="2420" y="570" />
+              <mxPoint x="2420" y="370" />
+              <mxPoint x="1834.2" y="370" />
+              <mxPoint x="1834.2" y="171.6" />
+              <mxPoint x="1734.5" y="171.6" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qCommS2" edge="1" parent="1" source="qCtrl" style="endArrow=open;strokeColor=#9673a6;strokeWidth=2;dashed=1;rounded=0;html=1;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.125;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="qS2" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2420" y="570" />
+              <mxPoint x="2420" y="370" />
+              <mxPoint x="1850" y="370" />
+              <mxPoint x="1850" y="251" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qCommS3" edge="1" parent="1" source="qCtrl" style="endArrow=open;strokeColor=#9673a6;strokeWidth=2;dashed=1;rounded=0;html=1;labelBackgroundColor=default;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.125;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="qS3" value="数据/通信">
+          <mxGeometry relative="1" x="0.3446" as="geometry">
+            <Array as="points">
+              <mxPoint x="2420" y="570" />
+              <mxPoint x="2420" y="370" />
+              <mxPoint x="2180" y="370" />
+              <mxPoint x="2180" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qLg" parent="1" style="swimlane;startSize=26;fillColor=#f5f5f5;strokeColor=#555555;fontStyle=1;fontSize=12;rounded=0;verticalAlign=middle;whiteSpace=wrap;html=1;" value="图例" vertex="1">
+          <mxGeometry height="440" width="220" x="2448" y="62" as="geometry" />
+        </mxCell>
+        <mxCell id="qL1" parent="qLg" style="rounded=0;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="34" as="geometry" />
+        </mxCell>
+        <mxCell id="qL1t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="A 区深水槽（历史深水）" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="32" as="geometry" />
+        </mxCell>
+        <mxCell id="qL2" parent="qLg" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="62" as="geometry" />
+        </mxCell>
+        <mxCell id="qL2t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="B/C 浅水盘（浅层积水）" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="qL3" parent="qLg" style="rounded=0;fillColor=#f5f5f5;strokeColor=#999999;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="qL3t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="道路（主要 / 连接 / 环形 / 石块路）" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="88" as="geometry" />
+        </mxCell>
+        <mxCell id="qL4" parent="qLg" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="118" as="geometry" />
+        </mxCell>
+        <mxCell id="qL4t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="草坪 + 树木模型" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="116" as="geometry" />
+        </mxCell>
+        <mxCell id="qL5" parent="qLg" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="146" as="geometry" />
+        </mxCell>
+        <mxCell id="qL5t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="D 区高地势（及宿舍等建筑）" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="144" as="geometry" />
+        </mxCell>
+        <mxCell id="qL6" parent="qLg" style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="174" as="geometry" />
+        </mxCell>
+        <mxCell id="qL6t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="移动式应急抽排模块" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="172" as="geometry" />
+        </mxCell>
+        <mxCell id="qL7" parent="qLg" style="rounded=0;fillColor=#d5f5f5;strokeColor=#0e8088;strokeWidth=2;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="202" as="geometry" />
+        </mxCell>
+        <mxCell id="qL7t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="独立回收水箱" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="qL8" parent="qLg" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="qL8t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="电子控制区（干燥区）" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="228" as="geometry" />
+        </mxCell>
+        <mxCell id="qL9" parent="qLg" style="rounded=0;fillColor=none;strokeColor=#ff0000;strokeWidth=2;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="258" as="geometry" />
+        </mxCell>
+        <mxCell id="qL9t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="候选停靠位（消防车，暂定）" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="256" as="geometry" />
+        </mxCell>
+        <mxCell id="qL10" parent="qLg" style="rounded=0;fillColor=#60a917;strokeColor=#2D7600;strokeWidth=2;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="18" width="34" x="10" y="286" as="geometry" />
+        </mxCell>
+        <mxCell id="qL10t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="普通车辆可停（相对干燥）" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="284" as="geometry" />
+        </mxCell>
+        <mxCell id="qL11" parent="qLg" style="rounded=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" value="S" vertex="1">
+          <mxGeometry height="18" width="20" x="17" y="314" as="geometry" />
+        </mxCell>
+        <mxCell id="qL11t" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;whiteSpace=wrap;html=1;" value="水位传感器（S1/S2/S3）" vertex="1">
+          <mxGeometry height="22" width="160" x="52" y="312" as="geometry" />
+        </mxCell>
+        <mxCell id="qL12" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;fontColor=#0e8088;fontStyle=1;whiteSpace=wrap;html=1;" value="━━ 抽水 / 排水管路" vertex="1">
+          <mxGeometry height="20" width="200" x="8" y="342" as="geometry" />
+        </mxCell>
+        <mxCell id="qL13" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;fontColor=#b79500;fontStyle=1;whiteSpace=wrap;html=1;" value="┅┅ 人工移动候选路线" vertex="1">
+          <mxGeometry height="20" width="200" x="8" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="qL14" parent="qLg" style="text;align=left;verticalAlign=middle;fontSize=10;fontColor=#9673a6;fontStyle=1;whiteSpace=wrap;html=1;" value="┅┅ 数据 / 通信关系" vertex="1">
+          <mxGeometry height="20" width="200" x="8" y="386" as="geometry" />
+        </mxCell>
+        <mxCell id="PjmMhaLooJjAXhVXTvLV-1" parent="1" style="rounded=0;fillColor=none;strokeColor=#ff0000;strokeWidth=2;fontColor=#b00000;fontSize=10;whiteSpace=wrap;html=1;rotation=90;" value="候选停靠位3（消防车）" vertex="1">
+          <mxGeometry height="34" width="80" x="1773" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="PjmMhaLooJjAXhVXTvLV-4" parent="1" style="ellipse;fillColor=#b9dfa8;strokeColor=#6b9e52;fontSize=9;whiteSpace=wrap;html=1;" value="树" vertex="1">
+          <mxGeometry height="24" width="24" x="2012" y="109" as="geometry" />
+        </mxCell>
+        <mxCell id="qS2_Desc" parent="1" style="rounded=0;fillColor=#e8e1f5;strokeColor=#7d5ba6;strokeWidth=2;fontColor=#4b2f63;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" value="面积大、相对较浅&lt;br&gt;雨停后缓慢下降" vertex="1">
+          <mxGeometry height="56" width="226" x="1928" y="242" as="geometry" />
+        </mxCell>
+        <mxCell id="qS2" parent="1" style="rounded=1;fillColor=#ffffff;strokeColor=#333333;strokeWidth=2;fontSize=10;fontStyle=1;whiteSpace=wrap;html=1;" value="S2" vertex="1">
+          <mxGeometry height="22" width="26" x="1923" y="240" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,1056 @@
+# -*- coding: utf-8 -*-
+"""
+================================================================================
+ 校园大面积积水应急排水实验台 V1.0  ——  FreeCAD 参数化建模宏
+ 《面向校园大面积积水的分布式感知与移动应急排水辅助系统》实验台
+================================================================================
+
+ 适用：FreeCAD 1.x（本宏在 FreeCAD 1.1.4 上实测运行通过）
+ 用法：宏编辑器打开本文件 -> 执行（Ctrl+F5 / 绿色三角）
+
+ 设计要点
+ ---------------------------------------------------------------------------
+ 1. 全部尺寸集中在下面【1. 参数区】，改完重新执行宏即可整体重建。
+ 2. 14 个 App::DocumentObjectGroup 分组，每个组件是独立的 Part::Feature，
+    可单独选择 / 隐藏 / 移动（软管、水面、虚线、传感器都是单个对象）。
+ 3. 水槽 = 真实壁厚 + 开口顶部（外盒减内腔，内腔向上打通）。
+ 4. 水面 = 1 mm 半透明片，Z 位置通过 Spreadsheet 表达式绑定，可现场编辑。
+ 5. 通信线为架空逻辑总线（z=84），仅为逻辑关系，不代表实体线缆。
+ 6. 建模结束后自动跑一遍包围盒空间检查，结果打印到“报告视图”。
+ 7. 自动保存 .FCStd（路径见 SAVE_PATH，可改为 False 关闭）。
+
+ 本宏不包含：流体仿真、车辆模型、自动收管、自动驾驶底盘、真实泵/传感器型号。
+================================================================================
+"""
+
+import os
+import FreeCAD as App
+import Part
+
+try:
+    import FreeCADGui as Gui
+except Exception:                                            # 无 GUI（freecadcmd）
+    Gui = None
+
+DOC_NAME = 'CampusFloodBench_V1'
+SAVE_FCSTD = True
+try:
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+except NameError:                                            # 宏编辑器里可能没有 __file__
+    _HERE = App.getUserMacroDir(True)
+SAVE_PATH = os.path.join(_HERE, u'校园积水应急排水实验台_V1.0.FCStd')
+
+# 参数表结构版本：参数语义发生变化时 +1，旧参数表不再读回（避免沿用过期尺寸）
+PARAM_SCHEMA = 2
+
+# =============================================================================
+# 1. 参数区（改这里就够了）
+# =============================================================================
+# ---- 底板 ----
+BASE_L, BASE_W, BASE_T = 800.0, 500.0, 8.0
+
+# ---- 通用 ----
+WALL, FLOOR_T = 3.0, 3.0          # 水槽壁厚 / 底厚
+ROAD_T, MARK_T = 3.0, 1.0         # 道路面层 / 地面标线
+HOSE_R = 4.0                      # 软管半径（外径 8）
+COMM_Z = 84.0                     # 通信线架空高度
+
+# ---- A 区：宿舍门口积水浅坑（V1.1 折中改造）----
+# 制约：底板只有 8 mm，无法直接向下挖 10 mm；改用"门口地坪加厚"实现真实下沉：
+#   地坪 13 mm（底板顶面 8 → 21）+ 槽底 3 mm（8 → 11）→ 槽内底面比地坪面低 10 mm。
+# 水槽总高 35 mm（8 → 43）＝原来的 55 改为矮墙；南（朝 C）/东（朝 B）两侧不砌高墙，
+# 只做 15 mm 路缘台阶（顶面 23）并在坑内做缓坡，模拟"水漫过马路牙子流向主干道"。
+A_TANK_X, A_TANK_Y, A_TANK_Z = 130.0, 145.0, 35.0   # 外廓 X/Y、总高
+A_TANK_POS = (150.0, 320.0, BASE_T)
+A_SINK = 10.0                    # 槽内底面相对地坪面的下沉量（浅坑，"水往低处流"）
+A_APRON_T = A_SINK + FLOOR_T     # 宿舍门前地坪厚度 = 13（8 → 21）
+A_CURB_H = 15.0                  # 朝 C / B 侧路缘台阶高（自底板顶面算 → 顶面 23）
+A_RAMP_RUN = 22.0                # 朝 C / B 侧缓坡水平投影（槽底 11 升到路缘顶 23）
+A_WATER_LEVEL = 11.0             # 相对槽内底面（槽底 11 → 水面 22，比路缘顶低 1 mm）
+# 宿舍楼：移到浅坑内西北角，基座直接充当浅坑的西 / 北两面墙（水淹到楼基座）
+A_DORM = (150.0, 365.0, 60.0, 100.0, 95.0)        # x0, y0, lx, ly, lz（z 自底板顶面 8 起）
+A_APRON_BOX = (84.0, 320.0, 288.0, 480.0)         # 门前地坪外框 x0, y0, x1, y1（中间挖去槽体外廓）
+
+# ---- B 区：小树林草坪 ----
+B_X, B_Y, B_PLATE_T = 250.0, 180.0, 20.0
+B_POS = (338.0, 300.0, BASE_T)
+B_BASIN = (358.0, 370.0, 210.0, 86.0, 6.0)     # S3 主浅水，下沉 6 -> 槽底 22
+B_S2AREA = (360.0, 328.0, 212.0, 36.0, 4.0)    # S2 观察区，下沉 4 -> 槽底 24
+B_LOW = (470.0, 332.0, 46.0, 26.0, 10.0)       # 局部低洼，下沉 10 -> 槽底 18
+B_MOUND = (360.0, 372.0, 54.0, 84.0)           # 草坪边缘局部高地（22 -> 28）
+B_STONE = (344.0, 306.0, 238.0, 16.0)          # 石块路（顶面 32）
+B_WATER_S3_Z, B_WATER_S2_Z = 26.0, 26.0
+
+# ---- C 区：道路 ----
+ROAD_Y0, ROAD_Y1 = 182.0, 288.0
+C_TRAY = (78.0, 190.0, 220.0, 62.0, 10.0)      # 道路浅水盘（坐于道路面 z=11）
+C_TRAY_WATER_LEVEL = 4.0
+
+# ---- C 区：P1 挡水台阶 + 泵停放位（V1.1：由"下沉 3 mm 凹位"改为 15 mm 浅台）----
+# P1 处可用进深受两侧既有件夹住：浅水盘占 y 190~252，A 区地坪自 y=320 起，
+# 故自浅水盘北壁到 A 区地坪前沿最大只有 68 mm（路面内 36 + 向北越过路缘拓出 32）。
+# 泵按"长边沿路方向"停放：110 沿 X、60 沿 Y，进 136x68 的台阶，两侧各留 4 mm。
+# 台阶顶面 z=23 = A 区路缘台阶顶面，水从 A 区漫过路缘后先铺满这道台阶，再溢流进浅水盘。
+P1_BAY_X, P1_BAY_Y = 96.0, 252.0        # 台阶左下角
+P1_BAY_LX, P1_BAY_LY = 136.0, 68.0      # 台阶尺寸（Y 向 252~320，一直顶到 A 区地坪前沿）
+P1_STEP_H = 15.0                        # 台阶高度（顶面 23 = 底板顶面 +15，比路面高 12）
+
+# ---- D 区：高地势 + 下坡路 ----
+D_POS = (596.0, 375.0, BASE_T)
+D_L, D_W, D_H = 194.0, 115.0, 22.0
+SLOPE_N = 6
+
+# ---- E 区：移动泵 ----
+PUMP_POS = (95.0, 30.0, BASE_T)
+PUMP_L, PUMP_W, PUMP_BASE_H = 110.0, 60.0, 6.0
+
+# ---- F 区：回收水箱 ----
+TANK_POS = (300.0, 25.0, BASE_T)
+TANK_L, TANK_W, TANK_H = 100.0, 70.0, 45.0
+TANK_WATER_LEVEL = 12.0
+
+# ---- G 区：电子控制区 ----
+ELEC_POS = (465.0, 20.0, BASE_T)
+ELEC_L, ELEC_W, ELEC_PAD_H = 320.0, 125.0, 6.0
+
+# ---- 派生：A 区竖向分层（mm） ----
+A_FLOOR_Z = BASE_T + FLOOR_T                                 # 槽内底面 11
+A_APRON_Z = BASE_T + A_APRON_T                               # 宿舍门前地坪面 21
+A_CURB_Z = BASE_T + A_CURB_H                                 # 路缘台阶顶面 23
+A_RIM_Z = BASE_T + A_TANK_Z                                  # 全高墙顶面 43
+P1_STEP_Z = BASE_T + P1_STEP_H                               # P1 台阶顶面 23
+
+# ---- 派生：水面绝对高度（mm） ----
+A_WATER_Z = A_FLOOR_Z + A_WATER_LEVEL                        # 22
+C_TRAY_WATER_Z = BASE_T + ROAD_T + FLOOR_T + C_TRAY_WATER_LEVEL   # 18
+REC_WATER_Z = BASE_T + FLOOR_T + TANK_WATER_LEVEL            # 23
+
+GROUPS = ['01_Base', '02_Zone_A_Dormitory', '03_Zone_B_Woodland', '04_Zone_C_Roads',
+          '05_Zone_D_Highland', '06_Pump_Module', '07_Recovery_Tank', '08_Electronics',
+          '09_Sensors', '10_Hoses', '11_Movement_Paths', '12_Communication_Lines',
+          '13_Water_Surface_Reference', '14_Labels']
+
+# =============================================================================
+# 2. 颜色（RGB 0~1 + 透明度 0~100）
+# =============================================================================
+COL = {
+    'base':   ((0.86, 0.86, 0.84), 0),
+    'bldg':   ((0.72, 0.79, 0.90), 0),
+    'grey':   ((0.70, 0.70, 0.70), 0),
+    'dark':   ((0.35, 0.35, 0.35), 0),
+    'atank':  ((0.96, 0.64, 0.64), 45),      # A 深水槽：淡红半透明（看得见内部壁厚）
+    'pipe':   ((0.55, 0.55, 0.58), 0),
+    'metal':  ((0.62, 0.64, 0.68), 0),
+    'grass':  ((0.63, 0.82, 0.55), 0),
+    'grass2': ((0.52, 0.74, 0.45), 0),
+    'stone':  ((0.74, 0.73, 0.68), 0),
+    'road':   ((0.55, 0.55, 0.55), 0),
+    'tray':   ((0.99, 0.82, 0.58), 40),      # 浅水盘：淡橙半透明
+    'glass':  ((0.62, 0.85, 0.95), 60),
+    'red':    ((0.86, 0.16, 0.16), 0),
+    'green':  ((0.24, 0.62, 0.28), 0),
+    'high':   ((0.62, 0.75, 0.92), 0),       # D 高地势：淡蓝
+    'high2':  ((0.73, 0.84, 0.95), 0),
+    'pump':   ((0.95, 0.85, 0.35), 0),
+    'pump2':  ((0.90, 0.72, 0.25), 0),
+    'recov':  ((0.36, 0.75, 0.72), 35),
+    'elec':   ((0.75, 0.65, 0.87), 0),       # 电子区：淡紫
+    'elec2':  ((0.66, 0.55, 0.80), 0),
+    'pcb':    ((0.20, 0.45, 0.30), 0),
+    'sensor': ((0.30, 0.30, 0.32), 0),
+    'water':  ((0.20, 0.45, 0.85), 55),      # 水面：半透明蓝
+    'hose1':  ((0.13, 0.72, 0.62), 0),       # 抽水软管① 青绿
+    'hose2':  ((0.10, 0.52, 0.55), 0),       # 抽水软管② 深青
+    'hose3':  ((0.25, 0.68, 0.90), 0),       # 排水软管 青蓝
+    'move':   ((0.95, 0.78, 0.15), 0),       # 人工移动路线 黄
+    'comm':   ((0.55, 0.25, 0.75), 0),       # 数据通信 紫
+}
+
+# =============================================================================
+# 3. 各分区建模
+# =============================================================================
+def build_base(doc, G):
+    add(doc, G['01_Base'], 'BasePlate', boxs(0, 0, 0, BASE_L, BASE_W, BASE_T), 'base')
+
+
+def build_A(doc, G):
+    """A 区：宿舍门口积水浅坑（浅坑 + 低路缘 + 缓坡，宿舍基座充当两面墙）
+
+    竖向分层（见参数区）：
+      8   底板顶面 = 槽底板底面（宿舍基座也落在这里）
+      11  槽内底面（3 mm 槽底板）—— 比地坪面低 10 mm，即"浅坑"
+      21  宿舍门前地坪面（13 mm 加厚垫层，自行车停放 / 北侧散水 / 东侧贴连接路）
+      23  路缘台阶顶面（15 mm）＝ P1 挡水台阶顶面，水一过就"漫过马路牙子"
+      43  西 / 北全高墙顶面（水槽总高 35）
+    """
+    g = G['02_Zone_A_Dormitory']
+    dx0, dy0, dlx, dly, dlz = A_DORM
+
+    # --- 宿舍楼：移到浅坑内西北角，基座直接充当浅坑的西 / 北两面墙 ---
+    add(doc, g, 'Dormitory_Model', boxs(dx0, dy0, BASE_T, dlx, dly, dlz), 'bldg')
+
+    # --- 宿舍门前地坪（13 mm，靠"地坪加厚"造出真实的 10 mm 下沉）---
+    add(doc, g, 'A_Zone_Apron', a_apron(), 'grey')
+
+    # --- 自行车停放区（坐在地坪面上）---
+    add(doc, g, 'Bicycle_Parking', boxs(84, 320, A_APRON_Z, 56, 160, 2), 'grey')
+    for i, y0 in enumerate((330.0, 362.0, 394.0)):
+        add(doc, g, 'Bike_Placeholder_0%d' % (i + 1),
+            boxs(90, y0, A_APRON_Z + 2, 44, 8, 5), 'dark')
+
+    # --- A 区浅坑槽体（底板 + 两道路缘 + 两段高墙 + 两道缓坡，一个对象、分件登记）---
+    add(doc, g, 'A_Deep_Water_Tank', a_tank(), 'atank', alpha=45)
+
+    # --- 接口占位件（分别独立，不并入槽体）---
+    # 注水口：西墙高位（高于地坪 21，无需穿地坪预埋）
+    add(doc, g, 'A_Tank_Inlet_Port', cyls('x', 136, 335, 35, 18, 5), 'pipe')
+    # 可调自然排水口：西墙低位，穿过地坪预埋到槽底（见豁免登记）
+    add(doc, g, 'A_Tank_Drain_Port', cyls('x', 134, 355, 15, 22, 5), 'pipe')
+    # 排水口滑板（调水位，贴西墙内表面）
+    add(doc, g, 'A_Tank_Drain_Adjuster',
+        boxs(153, 348, A_FLOOR_Z, 3, 14, 22), 'metal')
+    # 防溢流接口：北墙近顶，从北侧散水上方穿出（不碰地坪）
+    add(doc, g, 'A_Tank_Overflow_Port', cyls('y', 240, 458, 32, 16, 4), 'pipe')
+    # 抽水软管①接入口：穿南路缘进坑，接口位于水面高度
+    add(doc, g, 'A_Tank_Suction_Port', cyls('y', 240, 306, 20, 22, 5), 'pipe')
+
+
+def build_B(doc, G):
+    """B 区：小树林草坪（大面积浅层积水 + 局部低洼 + 局部高地，不建树木实体）"""
+    g = G['03_Zone_B_Woodland']
+    # 地形板：一次开三个凹坑（主浅水槽 / S2 观察区 / 局部低洼）
+    add(doc, g, 'B_Woodland_Base',
+        terrains(B_POS[0], B_POS[1], B_POS[2], B_X, B_Y, B_PLATE_T,
+                 [B_BASIN, B_S2AREA, B_LOW]), 'grass')
+    # 局部高地：从主槽底(22)升到草坪面板顶面(28)，露出水面
+    add(doc, g, 'B_Raised_Mound',
+        boxs(B_MOUND[0], B_MOUND[1], 22.0, B_MOUND[2], B_MOUND[3], 6.0), 'grass2')
+    # 石块路：顶面 32 > 草坪面板 28
+    add(doc, g, 'B_Stone_Path',
+        boxs(B_STONE[0], B_STONE[1], 28.0, B_STONE[2], B_STONE[3], 4.0), 'stone')
+    # 接口
+    add(doc, g, 'B_Inlet_Port', cyls('x', 588, 340, 13, 18, 5), 'pipe')
+    add(doc, g, 'B_Drain_Port', cyls('y', 540, 290, 13, 26, 5), 'pipe')
+    add(doc, g, 'B_Suction_Port', cyls('x', 326, 336, 25, 20, 6), 'pipe')
+    # 注：原"四棵树"（B_Tree_01~04）已按要求删除，B 区只保留地形板 / 局部高地 / 石块路。
+
+
+def build_C(doc, G):
+    """C 区：校园主要道路、浅水盘、P1 挡水台阶（兼泵停放位）、候选停靠位、干燥停车区"""
+    g = G['04_Zone_C_Roads']
+    # --- 主路：只在 P1 那一段切掉路面层（给 15 mm 挡水台阶让位），其余路段原样 ---
+    bx1 = P1_BAY_X + P1_BAY_LX
+    road = boxs(15, ROAD_Y0, BASE_T, 585, ROAD_Y1 - ROAD_Y0, ROAD_T)
+    notch = Part.makeBox(P1_BAY_LX, ROAD_Y1 - P1_BAY_Y, ROAD_T + 1.0,
+                         V(P1_BAY_X, P1_BAY_Y, BASE_T - 0.5))
+    # 路面包围盒按"去掉沉台"拆成三块登记，避免沉台内的标记件被误判为干涉
+    road_prims = [_bb(15, ROAD_Y0, BASE_T, 585, P1_BAY_Y - ROAD_Y0, ROAD_T),
+                  _bb(15, P1_BAY_Y, BASE_T, P1_BAY_X - 15, ROAD_Y1 - P1_BAY_Y, ROAD_T),
+                  _bb(bx1, P1_BAY_Y, BASE_T, 600 - bx1, ROAD_Y1 - P1_BAY_Y, ROAD_T)]
+    add(doc, g, 'C_Main_Road', (road[0].cut(notch), road_prims), 'road')
+    add(doc, g, 'C_Connector_Road',
+        boxs(288, ROAD_Y1, BASE_T, 44, 200, ROAD_T), 'road')
+    add(doc, g, 'C_Ring_Road',
+        rings(600, 180, BASE_T, 190, 108, ROAD_T, 18), 'road')
+    # 道路浅层积水盘：坐于道路面层之上，可整体取出
+    add(doc, g, 'C_Road_Water_Tray',
+        tanks(C_TRAY[0], C_TRAY[1], BASE_T + ROAD_T, C_TRAY[2], C_TRAY[3], C_TRAY[4]),
+        'tray', alpha=40)
+    add(doc, g, 'C_Tray_Sight_Glass', boxs(228, 187, 12, 34, 3, 8), 'glass', alpha=60)
+    # 注：P1 挡水台阶（x 96~232）埋掉了浅水盘北壁西段，入水口向东移到台阶以东的裸露盘壁
+    add(doc, g, 'C_Tray_Inlet_Port', cyls('y', 250, 252, 19, 18, 5), 'pipe')
+    add(doc, g, 'C_Tray_Drain_Port', cyls('y', 270, 178, 15, 18, 4), 'pipe')
+    # --- P1 挡水台阶：15 mm 浅台，台面 z=23 与 A 区路缘台阶同高 ---
+    add(doc, g, 'P1_Bay_Step',
+        boxs(P1_BAY_X, P1_BAY_Y, BASE_T, P1_BAY_LX, P1_BAY_LY, P1_STEP_H), 'road')
+    add(doc, g, 'P1_Bay_Edge_Marking',
+        rings(P1_BAY_X, P1_BAY_Y, P1_STEP_Z, P1_BAY_LX, P1_BAY_LY, MARK_T, 2.0), 'red')
+    px = P1_BAY_X + (P1_BAY_LX - PUMP_L) / 2.0      # 泵停放占位（长边沿路方向）
+    py = P1_BAY_Y + (P1_BAY_LY - PUMP_W) / 2.0
+    add(doc, g, 'P1_Candidate_Stop', boxs(px, py, P1_STEP_Z, PUMP_L, PUMP_W, MARK_T), 'red')
+    # 其余候选停靠位：红色标记板（暂定；不放车辆模型）
+    add(doc, g, 'P2_Candidate_Stop', boxs(366, 258, BASE_T + ROAD_T, 105, 26, MARK_T), 'red')
+    add(doc, g, 'P3_Candidate_Stop', boxs(296, 300, BASE_T + ROAD_T, 34, 30, MARK_T), 'red')
+    # 普通车辆可停（相对干燥）
+    add(doc, g, 'C_Dry_Parking',
+        boxs(450, 190, BASE_T + ROAD_T, 145, 62, 2), 'green')
+
+
+
+# =============================================================================
+# 4. 建模工具函数
+#    每个 builder 返回 (shape, prims)：prims 是该对象的分件包围盒，
+#    用于建模结束后的空间干涉检查（L 形软管按段、环带按边、树按干/冠）。
+# =============================================================================
+CHECK = []          # [(name, group, [(x0,y0,z0,x1,y1,z1), ...])]
+
+
+def V(x, y, z):
+    return App.Vector(float(x), float(y), float(z))
+
+
+def _bb(x, y, z, lx, ly, lz):
+    return (x, y, z, x + lx, y + ly, z + lz)
+
+
+def boxs(x, y, z, lx, ly, lz):
+    """实体长方体（绝对坐标）"""
+    s = Part.makeBox(float(lx), float(ly), float(lz), V(x, y, z))
+    return s, [_bb(x, y, z, lx, ly, lz)]
+
+
+def cyls(axis, a, b, c, length, r):
+    """圆柱。axis='x'：(x0, len, r, cy, cz)；axis='y'：(xc, y0, len, r, cz)；
+       axis='z'：(xc, yc, z0, len, r)"""
+    r, length = float(r), float(length)
+    if axis == 'x':
+        x0, cy, cz = a, b, c
+        s = Part.makeCylinder(r, length, V(x0, cy, cz), App.Vector(1, 0, 0))
+        return s, [_bb(x0, cy - r, cz - r, length, 2 * r, 2 * r)]
+    if axis == 'y':
+        xc, y0, cz = a, b, c
+        s = Part.makeCylinder(r, length, V(xc, y0, cz), App.Vector(0, 1, 0))
+        return s, [_bb(xc - r, y0, cz - r, 2 * r, length, 2 * r)]
+    xc, yc, z0 = a, b, 0.0
+    s = Part.makeCylinder(r, length, V(xc, yc, z0), App.Vector(0, 0, 1))
+    return s, [_bb(xc - r, yc - r, z0, 2 * r, 2 * r, length)]
+
+
+def spheres(cx, cy, cz, r):
+    s = Part.makeSphere(float(r), V(cx, cy, cz))
+    return s, [_bb(cx - r, cy - r, cz - r, 2 * r, 2 * r, 2 * r)]
+
+
+def tanks(x, y, z, lx, ly, lz, wall=WALL, floor_t=FLOOR_T):
+    """开口水槽：外盒 - 内腔（内腔向上打通，顶部完全敞开）"""
+    outer = Part.makeBox(lx, ly, lz, V(x, y, z))
+    cav = Part.makeBox(lx - 2 * wall, ly - 2 * wall, lz - floor_t + 6,
+                       V(x + wall, y + wall, z + floor_t))
+    return outer.cut(cav), [_bb(x, y, z, lx, ly, lz)]
+
+
+def ramp_x(x0, y0, z_lo, run, length, rise):
+    """朝 C 区的缓坡棱柱：沿 +X 挤出，斜面自 (y0, z_lo+rise) 降到 (y0+run, z_lo)"""
+    tri = Part.makePolygon([V(x0, y0, z_lo), V(x0, y0 + run, z_lo),
+                            V(x0, y0, z_lo + rise)], True)
+    return Part.Face(tri).extrude(V(length, 0, 0)), \
+        [_bb(x0, y0, z_lo, length, run, rise)]
+
+
+def ramp_y(x0, y0, z_lo, run, length, rise):
+    """朝 B 区的缓坡棱柱：沿 +Y 挤出，斜面自 (x0, z_lo+rise) 降到 (x0-run, z_lo)"""
+    tri = Part.makePolygon([V(x0, y0, z_lo), V(x0 - run, y0, z_lo),
+                            V(x0, y0, z_lo + rise)], True)
+    return Part.Face(tri).extrude(V(0, length, 0)), \
+        [_bb(x0 - run, y0, z_lo, run, length, rise)]
+
+
+def a_apron():
+    """A 区宿舍门前地坪（A_APRON_T = 13 mm）：西侧自行车带 + 北侧散水 + 东侧贴 A/B 连接路。
+       中间留出槽体外廓的洞口，槽体落进洞口 → 槽内底面比地坪面低 A_SINK（10 mm）。"""
+    x0, y0, x1, y1 = A_APRON_BOX
+    tx0, ty0 = A_TANK_POS[0], A_TANK_POS[1]
+    tx1, ty1 = tx0 + A_TANK_X, ty0 + A_TANK_Y
+    pieces = [(x0, y0, tx0 - x0, y1 - y0),          # 西侧（自行车停放带）
+              (tx0, ty1, tx1 - tx0, y1 - ty1),      # 北侧散水
+              (tx1, y0, x1 - tx1, y1 - y0)]         # 东侧（贴 A/B 连接道路）
+    shp, prims = None, []
+    for (bx, by, blx, bly) in pieces:
+        if blx <= 0 or bly <= 0:
+            continue
+        b = Part.makeBox(blx, bly, A_APRON_T, V(bx, by, BASE_T))
+        shp = b if shp is None else shp.fuse(b)
+        prims.append(_bb(bx, by, BASE_T, blx, bly, A_APRON_T))
+    return shp, prims
+
+
+def a_tank():
+    """A 区浅坑槽体（一个对象 / 8 个分件，便于逐件下料）：
+       3 mm 槽底板（挖去宿舍占位，宿舍直接落在底板顶面）
+       + 南 / 东路缘台阶 15 mm（自底板顶面算，顶面 23）
+       + 西 / 北全高墙 35 mm（顶面 43，其余两面下部由宿舍基座充当）
+       + 朝 C / B 的两道缓坡（槽底 11 升到路缘顶 23）"""
+    x0, y0 = A_TANK_POS[0], A_TANK_POS[1]
+    x1, y1 = x0 + A_TANK_X, y0 + A_TANK_Y
+    zf, zc, zr = A_FLOOR_Z, A_CURB_Z, A_RIM_Z
+    dx0, dy0, dlx, dly, _ = A_DORM
+    shp, prims = None, []
+
+    def put(built):
+        nonlocal shp
+        s, p = built
+        shp = s if shp is None else shp.fuse(s)
+        prims.extend(p)
+
+    # 槽底板（3 mm）：宿舍占位处不铺板
+    put(boxs(x0, y0, BASE_T, A_TANK_X, dy0 - y0, FLOOR_T))
+    put(boxs(dx0 + dlx, dy0, BASE_T, x1 - (dx0 + dlx), y1 - dy0, FLOOR_T))
+    # 南 / 东路缘台阶（朝 C / B 的低缘，15 mm）
+    put(boxs(x0, y0, zf, A_TANK_X, WALL, zc - zf))
+    put(boxs(x1 - WALL, y0, zf, WALL, A_TANK_Y, zc - zf))
+    # 西 / 北全高墙（35 mm）
+    put(boxs(x0, y0, zf, WALL, dy0 - y0, zr - zf))
+    put(boxs(dx0 + dlx, y1 - WALL, zf, x1 - (dx0 + dlx), WALL, zr - zf))
+    # 缓坡（东南角留平底集水角，两道坡互不穿插）
+    put(ramp_x(x0 + WALL, y0 + WALL, zf, A_RAMP_RUN,
+               (x1 - WALL - A_RAMP_RUN) - (x0 + WALL), zc - zf))
+    put(ramp_y(x1 - WALL, y0 + WALL + A_RAMP_RUN, zf, A_RAMP_RUN,
+               y1 - WALL - (y0 + WALL + A_RAMP_RUN), zc - zf))
+    return shp, prims
+
+
+def rings(x, y, z, lx, ly, lz, band):
+    """矩形环带（环形道路 / 挡水圈）"""
+    outer = Part.makeBox(lx, ly, lz, V(x, y, z))
+    inner = Part.makeBox(lx - 2 * band, ly - 2 * band, lz + 2,
+                         V(x + band, y + band, z - 1))
+    prims = [_bb(x, y, z, lx, band, lz), _bb(x, y + ly - band, z, lx, band, lz),
+             _bb(x, y + band, z, band, ly - 2 * band, lz),
+             _bb(x + lx - band, y + band, z, band, ly - 2 * band, lz)]
+    return outer.cut(inner), prims
+
+
+def terrains(x, y, z, lx, ly, lz, cuts):
+    """带局部凹陷的地形板。cuts = [(cx, cy, clx, cly, depth), ...]"""
+    s = Part.makeBox(lx, ly, lz, V(x, y, z))
+    for (cx, cy, clx, cly, d) in cuts:
+        s = s.cut(Part.makeBox(clx, cly, d + 6, V(cx, cy, z + lz - d)))
+    return s, [_bb(x, y, z, lx, ly, lz)]
+
+
+def plates(x, y, lx, ly, cuts=None):
+    """水面片：建于 z=0，Z 由 Placement 控制（便于表达式绑定）"""
+    s = Part.makeBox(lx, ly, 1.0, V(x, y, 0))
+    for (cx, cy, clx, cly) in (cuts or []):
+        s = s.cut(Part.makeBox(clx, cly, 3.0, V(cx, cy, -1)))
+    return s, [_bb(x, y, 0, lx, ly, 1)]
+
+
+def sensors(box_list):
+    """传感器 = 底座 + 立柱 + 悬臂 + 探头（一个复合对象）"""
+    shp = None
+    prims = []
+    for (bx, by, bz, blx, bly, blz) in box_list:
+        b = Part.makeBox(blx, bly, blz, V(bx, by, bz))
+        shp = b if shp is None else shp.fuse(b)
+        prims.append(_bb(bx, by, bz, blx, bly, blz))
+    return shp, prims
+
+
+def hoses(pts, r=HOSE_R):
+    """软管：分段圆柱 + 拐点球（只表达空间路径）"""
+    shp = None
+    prims = []
+    for i in range(len(pts) - 1):
+        p, q = App.Vector(*pts[i]), App.Vector(*pts[i + 1])
+        d = q - p
+        if d.Length < 1e-6:
+            continue
+        seg = Part.makeCylinder(r, d.Length, p, d.normalize())
+        shp = seg if shp is None else shp.fuse(seg)
+        prims.append((min(p.x, q.x) - r, min(p.y, q.y) - r, min(p.z, q.z) - r,
+                      max(p.x, q.x) + r, max(p.y, q.y) + r, max(p.z, q.z) + r))
+    for pt in pts[1:-1]:
+        b = Part.makeSphere(r, App.Vector(*pt))
+        shp = shp.fuse(b)
+    return shp, prims
+
+
+def wires(pts):
+    """折线（虚线示意）"""
+    return Part.makePolygon([App.Vector(*p) for p in pts]), []
+
+
+def style(obj, ckey, alpha=None, dash=None, line=None, width=None):
+    """统一设置显示属性（属性不存在时静默跳过）"""
+    vo = getattr(obj, 'ViewObject', None)
+    if vo is None:
+        return
+    rgb, tr = COL.get(ckey, ((0.8, 0.8, 0.8), 0))
+    tr = tr if alpha is None else alpha
+    try:
+        vo.ShapeColor = rgb
+    except Exception:
+        pass
+    try:
+        vo.Transparency = int(tr)
+    except Exception:
+        pass
+    try:
+        if line is not None:
+            vo.LineColor = line
+        elif dash is not None:
+            vo.LineColor = rgb
+    except Exception:
+        pass
+    try:
+        if width is not None:
+            vo.LineWidth = float(width)
+    except Exception:
+        pass
+    try:
+        if dash is not None:
+            vo.DrawStyle = u'Dashed'
+    except Exception:
+        pass
+
+
+def add(doc, grp, name, built, ckey, alpha=None, dash=None, line=None, width=None,
+        register=True):
+    """把 (shape, prims) 变成独立的 Part::Feature 并放进分组"""
+    shape, prims = built
+    obj = doc.addObject('Part::Feature', name)
+    obj.Shape = shape
+    obj.Label = name
+    style(obj, ckey, alpha, dash, line, width)
+    if grp is not None:
+        grp.addObject(obj)
+    if register:
+        CHECK.append((name, grp.Name if grp is not None else '', list(prims)))
+    return obj
+
+
+# -----------------------------------------------------------------------------
+# 3.1 其余分区建模（D / E / F / G / 传感器 / 管路 / 路线 / 水面 / 标注）
+# -----------------------------------------------------------------------------
+def add_water(doc, grp, name, x, y, lx, ly, z, alias=None, cuts=None, prims=None):
+    """水面片：形状建于 z=0，Z 由 Placement 控制，可绑定参数表表达式
+       prims：分件包围盒（L 形水面绕过遮挡物时按块登记，避免误判干涉）"""
+    shape, _ = plates(x, y, lx, ly, cuts)
+    obj = doc.addObject('Part::Feature', name)
+    obj.Shape = shape
+    obj.Label = name
+    obj.Placement.Base = V(0, 0, z)
+    style(obj, 'water')
+    grp.addObject(obj)
+    CHECK.append((name, grp.Name, prims or [_bb(x, y, z, lx, ly, 1.0)]))
+    if alias:
+        try:
+            obj.setExpression('Placement.Base.z', '<<Parameters>>.%s' % alias)
+        except Exception:
+            pass          # 参数表缺失时不影响建模
+    return obj
+
+
+def build_D(doc, G):
+    """D 区：高地势平台 + B 区右侧下坡道路（6 级台阶）"""
+    g = G['05_Zone_D_Highland']
+    add(doc, g, 'D_Highland',
+        boxs(D_POS[0], D_POS[1], D_POS[2], D_L, D_W, D_H), 'high')
+    add(doc, g, 'D_Highland_Top_Step',
+        boxs(616, 392, D_POS[2] + D_H, 154, 81, 6), 'high2')
+    y_top, y_bot = D_POS[1], ROAD_Y1
+    dy = (y_top - y_bot) / SLOPE_N
+    z_top, z_end = D_POS[2] + D_H, BASE_T + ROAD_T
+    for i in range(SLOPE_N):
+        yi = y_top - (i + 1) * dy
+        zi = z_top - (i + 1) * (z_top - z_end) / SLOPE_N
+        add(doc, g, 'B_Right_Slope_Step_%d' % (i + 1),
+            boxs(610, yi, BASE_T, 170, dy, zi - BASE_T), 'road')
+
+
+def build_E(doc, G):
+    """E 区：移动式应急抽排模块（第一版 1 台，人工移动）"""
+    g = G['06_Pump_Module']
+    add(doc, g, 'Pump_Module_Base',
+        boxs(PUMP_POS[0], PUMP_POS[1], PUMP_POS[2], PUMP_L, PUMP_W, PUMP_BASE_H), 'pump')
+    add(doc, g, 'Pump_Body', cyls('x', 112, 60, 31, 44, 17), 'pump2')
+    add(doc, g, 'Pump_Motor', cyls('x', 156, 60, 31, 34, 14), 'metal')
+    # 两个吸水快速接头（人工择一连接软管①/②）+ 一个排水口
+    add(doc, g, 'Pump_Suction_Port', cyls('x', 92, 60, 25, 20, 5), 'pipe')
+    add(doc, g, 'Pump_Suction_Port_Alt', cyls('y', 150, 70, 25, 34, 5), 'pipe')
+    add(doc, g, 'Pump_Discharge_Port', cyls('x', 190, 60, 25, 20, 5), 'pipe')
+    # 传感器 / 接线占位（这里没有 MCU 板，泵控 MCU 唯一实例在 G 区）
+    add(doc, g, 'Flow_Sensor_Block', boxs(95, 52, 18, 16, 16, 14), 'sensor')
+    add(doc, g, 'Current_Sensor_Block', boxs(191, 75, 14, 14, 14, 12), 'sensor')
+    add(doc, g, 'Pump_Controller_Connector', boxs(98, 31, 14, 20, 11, 10), 'sensor')
+
+
+def build_F(doc, G):
+    """F 区：独立回收水箱（开口、真实壁厚、可整体取出）"""
+    g = G['07_Recovery_Tank']
+    add(doc, g, 'Recovery_Tank',
+        tanks(TANK_POS[0], TANK_POS[1], TANK_POS[2], TANK_L, TANK_W, TANK_H),
+        'recov', alpha=35)
+    add(doc, g, 'Recovery_Tank_Inlet_Port', cyls('x', 292, 48, 25, 14, 5), 'pipe')
+    add(doc, g, 'Recovery_Tank_Drain_Port', cyls('y', 340, 17, 13, 16, 5), 'pipe')
+    add(doc, g, 'Recovery_Tank_Drain_Handle', cyls('y', 340, 10, 13, 8, 5), 'metal')
+    add(doc, g, 'Recovery_Tank_Level_Window', boxs(352, 22, 14, 22, 3, 30), 'glass', alpha=60)
+    add(doc, g, 'Recovery_Tank_Overflow_Port', cyls('x', 397, 70, 42, 14, 5), 'pipe')
+
+
+def build_G(doc, G):
+    """G 区：电子控制区（干燥区，与全部水体物理隔离）"""
+    g = G['08_Electronics']
+    ex, ey, ez = ELEC_POS
+    add(doc, g, 'Electronics_Zone_Pad',
+        boxs(ex, ey, ez, ELEC_L, ELEC_W, ELEC_PAD_H), 'elec')
+    add(doc, g, 'Electronics_Zone_Curb',
+        rings(ex, ey, ez + ELEC_PAD_H, ELEC_L, ELEC_W, 8, 5), 'elec2')
+    # Linux 主控盒（较大的主板空间）
+    add(doc, g, 'Linux_Main_Controller_Box',
+        tanks(475, 28, 14, 150, 100, 34), 'elec')
+    add(doc, g, 'Linux_Mainboard_Placeholder', boxs(483, 36, 17, 130, 80, 2), 'pcb')
+    # MCU 感知节点
+    add(doc, g, 'MCU_Sensor_Node_Box', tanks(640, 80, 14, 80, 55, 22), 'elec')
+    add(doc, g, 'MCU_Sensor_Board', boxs(651, 90, 17, 62, 40, 2), 'pcb')
+    # MCU 泵控节点（全模型唯一泵控 MCU 实例）
+    add(doc, g, 'MCU_Pump_Node_Box', tanks(640, 26, 14, 75, 50, 22), 'elec')
+    add(doc, g, 'MCU_Pump_Board', boxs(650, 33, 17, 58, 36, 2), 'pcb')
+    # 电源与接口 / 接线预留
+    add(doc, g, 'Power_Interface_Block', boxs(732, 96, 14, 44, 34, 12), 'pcb')
+    add(doc, g, 'Cable_Duct_Area', boxs(730, 32, 14, 46, 50, 1), 'grey')
+
+
+def build_sensors(doc, G):
+    """S1/S2/S3：底座 + 立柱 + 悬臂 + 探头，每个是一个可独立隐藏的对象"""
+    g = G['09_Sensors']
+    add(doc, g, 'Sensor_S1', sensors([
+        (240, 455, A_RIM_Z, 24, 24, 4),     # 底座（坐在 A 槽北墙顶端，骑墙夹持）
+        (247, 458, A_RIM_Z + 4, 8, 8, 25),  # 立柱
+        (247, 436, A_RIM_Z + 29, 8, 28, 3), # 悬臂（伸向坑内）
+        (248, 442, 16, 6, 6, A_RIM_Z + 29 - 16)]),  # 探头（下探到水面以下 z=16）
+        'sensor')
+    add(doc, g, 'Sensor_S2', sensors([
+        (378, 334, 24, 24, 24, 4),      # 立于 S2 观察区槽底 z=24
+        (386, 342, 28, 8, 8, 16),
+        (402, 342, 40, 26, 8, 3),
+        (422, 343, 25, 6, 6, 15)]),
+        'sensor')
+    add(doc, g, 'Sensor_S3', sensors([
+        (536, 430, 22, 24, 24, 4),      # 立于主浅水槽底 z=22
+        (544, 438, 26, 8, 8, 16),
+        (512, 438, 38, 40, 8, 3),
+        (512, 439, 23, 6, 6, 15)]),
+        'sensor')
+
+
+def build_hoses(doc, G):
+    """三条管路：抽水软管①（至 A）、抽水软管②（至 B）、排水软管（至回收水箱）
+       水平段管心 z=25，高于道路面层顶面 11 mm，跨越道路时不与板件穿插。"""
+    g = G['10_Hoses']
+    # 抽水软管①：水平段抬到管心 z=30（管底 26），以越过 P1 挡水台阶（顶面 23）；
+    # 末端在 A 区南路缘外侧竖直下插进吸水接口（接口中心 z=20）。
+    add(doc, g, 'Hose_Suction_1',
+        hoses([(92, 60, 30), (72, 60, 30), (72, 296, 30), (240, 296, 30), (240, 306, 30),
+               (240, 306, 20)]), 'hose1')
+    add(doc, g, 'Hose_Suction_2',
+        hoses([(150, 104, 25), (150, 120, 25), (292, 120, 25), (292, 336, 25),
+               (330, 336, 25)]), 'hose2')
+    add(doc, g, 'Hose_Drain',
+        hoses([(210, 60, 25), (232, 60, 25), (232, 48, 25), (292, 48, 25)]), 'hose3')
+
+
+def build_paths(doc, G):
+    """人工移动候选路线（黄虚线）+ 数据通信关系（紫虚线，架空逻辑总线）"""
+    gm = G['11_Movement_Paths']
+    add(doc, gm, 'Move_Path_01', wires([(60, 70, 9.5), (60, 270, 9.5), (212, 270, 9.5)]),
+        'move', dash=True, width=2.0, register=False)
+    add(doc, gm, 'Move_Path_02',
+        wires([(150, 95, 9.5), (150, 150, 9.5), (418, 150, 9.5), (418, 270, 9.5)]),
+        'move', dash=True, width=2.0, register=False)
+    add(doc, gm, 'Move_Path_03',
+        wires([(150, 98, 9.5), (150, 118, 9.5), (316, 118, 9.5), (316, 300, 9.5)]),
+        'move', dash=True, width=2.0, register=False)
+
+    gc = G['12_Communication_Lines']
+    add(doc, gc, 'Comm_Trunk',
+        wires([(312, 455, COMM_Z), (312, 152, COMM_Z), (660, 152, COMM_Z),
+               (660, 110, COMM_Z), (660, 110, 40)]), 'comm', dash=True, width=1.8,
+        register=False)
+    add(doc, gc, 'Comm_S1_Link', wires([(248, 450, A_RIM_Z + 32), (312, 450, COMM_Z)]),
+        'comm', dash=True, width=1.8, register=False)
+    add(doc, gc, 'Comm_S2_Link',
+        wires([(424, 346, 43), (424, 346, COMM_Z), (312, 346, COMM_Z)]),
+        'comm', dash=True, width=1.8, register=False)
+    add(doc, gc, 'Comm_S3_Link',
+        wires([(552, 438, 41), (552, 438, COMM_Z), (312, 438, COMM_Z)]),
+        'comm', dash=True, width=1.8, register=False)
+    add(doc, gc, 'Comm_MCU_Sensor_To_Linux',
+        wires([(680, 84, 36), (680, 72, 36), (680, 72, 52), (618, 72, 52), (618, 72, 48)]),
+        'comm', dash=True, width=1.8, register=False)
+    add(doc, gc, 'Comm_Linux_To_MCU_Pump',
+        wires([(612, 60, 48), (612, 60, 58), (664, 60, 58), (664, 60, 36)]),
+        'comm', dash=True, width=1.8, register=False)
+
+
+def build_water(doc, G):
+    """水面参考对象：半透明 1 mm 面片，Z 可在参数表里改（表达式绑定）"""
+    g = G['13_Water_Surface_Reference']
+    dx0, dy0, dlx, dly, _ = A_DORM
+    # A 区水面：坑内净空（挖去宿舍基座占位），z = 槽内底面 11 + A_WATER_LEVEL 11 = 22
+    wx0, wy0 = A_TANK_POS[0] + WALL, A_TANK_POS[1] + WALL
+    wx1, wy1 = A_TANK_POS[0] + A_TANK_X - WALL, A_TANK_POS[1] + A_TANK_Y - WALL
+    a_prims = [_bb(wx0, wy0, A_WATER_Z, wx1 - wx0, dy0 - wy0, 1.0),               # 南段（通长）
+               _bb(dx0 + dlx, dy0, A_WATER_Z, wx1 - (dx0 + dlx), wy1 - dy0, 1.0)]  # 宿舍以东
+    add_water(doc, g, 'A_Water_Surface',
+              wx0, wy0, A_TANK_X - 2 * WALL, A_TANK_Y - 2 * WALL, A_WATER_Z,
+              alias='A_WATER_Z', cuts=[(dx0, dy0, dlx, dly)], prims=a_prims)
+    add_water(doc, g, 'B_Water_Surface_S3', B_BASIN[0], B_BASIN[1], B_BASIN[2], B_BASIN[3],
+              B_WATER_S3_Z, alias='B_WATER_S3_Z',
+              cuts=[(B_MOUND[0], B_MOUND[1], B_MOUND[2], B_MOUND[3])])
+    add_water(doc, g, 'B_Water_Surface_S2', B_S2AREA[0], B_S2AREA[1], B_S2AREA[2],
+              B_S2AREA[3], B_WATER_S2_Z, alias='B_WATER_S2_Z')
+    add_water(doc, g, 'C_Tray_Water_Surface', 81, 193, 214, 56, C_TRAY_WATER_Z,
+              alias='C_TRAY_WATER_Z')
+    add_water(doc, g, 'Recovery_Tank_Water_Surface', 303, 28, 94, 64, REC_WATER_Z,
+              alias='REC_WATER_Z')
+
+
+LABELS = [
+    (u'A 区  宿舍门口浅坑积水（35 矮墙 + 下沉 10）', 40, 306, 40),
+    (u'B 区  小树林草坪', 420, 492, 44),
+    (u'C 区  校园主要道路', 120, 246, 14),
+    (u'P1 挡水台阶（15，兼泵停放位）', 236, 296, 42),
+    (u'D 区  高地势平台', 700, 470, 42),
+    (u'下坡道路（6 级台阶）', 700, 330, 34),
+    (u'环形道路', 690, 200, 14),
+    (u'道路浅水盘（可整体取出）', 132, 214, 24),
+    (u'S2 观察区（面积大/相对较浅）', 452, 348, 30),
+    (u'E  移动泵模块（人工搬运）', 56, 120, 56),
+    (u'F  回收水箱', 330, 110, 60),
+    (u'G  电子控制区（干燥）', 640, 150, 52),
+]
+
+
+def build_labels(doc, G):
+    g = G['14_Labels']
+    for i, (txt, x, y, z) in enumerate(LABELS):
+        try:
+            a = doc.addObject('App::Annotation', 'Label_%02d' % (i + 1))
+            a.LabelText = [txt]
+            a.Position = V(x, y, z)
+            g.addObject(a)
+            vo = a.ViewObject
+            try:
+                vo.FontSize = 15
+            except Exception:
+                pass
+            try:
+                vo.TextColor = (0.05, 0.05, 0.35)
+            except Exception:
+                pass
+        except Exception as e:
+            App.Console.PrintWarning('标注创建失败 %s: %s\n' % (txt, e))
+
+
+# =============================================================================
+# 5. 空间检查（包围盒，与阶段一校验同一套规则）
+#    设计意图内的接触/穿透登记为豁免，其余重叠一律报错。
+# =============================================================================
+EXEMPT = [
+    ('A_Deep_Water_Tank', 'A_Tank_Inlet_Port', u'接口穿壁（设计意图）'),
+    ('A_Deep_Water_Tank', 'A_Tank_Drain_Port', u'接口穿壁（设计意图）'),
+    ('A_Deep_Water_Tank', 'A_Tank_Overflow_Port', u'接口穿壁（设计意图）'),
+    ('A_Deep_Water_Tank', 'A_Tank_Suction_Port', u'接口穿壁（设计意图）'),
+    ('A_Deep_Water_Tank', 'A_Water_Surface', u'水面在浅坑内（含没入水中的缓坡）'),
+    ('A_Deep_Water_Tank', 'Sensor_S1', u'S1 支架夹持槽壁、探头入槽'),
+    ('A_Deep_Water_Tank', 'A_Zone_Apron', u'槽体落在地坪洞口内（口边相接）'),
+    ('A_Deep_Water_Tank', 'Dormitory_Model', u'宿舍基座充当浅坑西/北两面墙'),
+    ('A_Zone_Apron', 'Dormitory_Model', u'宿舍基座落于门前地坪'),
+    ('A_Zone_Apron', 'A_Tank_Drain_Port', u'排水管穿地坪预埋（设计意图）'),
+    ('A_Tank_Inlet_Port', 'A_Water_Surface', u'进水口与水面相接'),
+    ('A_Tank_Drain_Port', 'A_Tank_Drain_Adjuster', u'可调排水口滑板'),
+    ('A_Tank_Drain_Adjuster', 'A_Water_Surface', u'调水位滑板立于水中'),
+    ('A_Tank_Suction_Port', 'A_Water_Surface', u'吸水口位于水面高度'),
+    ('B_Woodland_Base', 'B_Raised_Mound', u'地形起伏（凹坑内凸台）'),
+    ('B_Woodland_Base', 'B_Water_Surface_S3', u'水面在槽内'),
+    ('B_Woodland_Base', 'B_Water_Surface_S2', u'水面在低洼内'),
+    ('B_Woodland_Base', 'B_Inlet_Port', u'接口穿壁（设计意图）'),
+    ('B_Woodland_Base', 'B_Drain_Port', u'接口穿壁（设计意图）'),
+    ('B_Woodland_Base', 'B_Suction_Port', u'接口穿壁（设计意图）'),
+    ('B_Woodland_Base', 'Sensor_S2', u'传感器立于槽底'),
+    ('B_Woodland_Base', 'Sensor_S3', u'传感器立于槽底'),
+    ('B_Raised_Mound', 'B_Water_Surface_S3', u'水面已按凸台开缺口'),
+    ('B_Water_Surface_S3', 'B_Water_Surface_S2', u'两片水面不重叠（S3 已避开）'),
+    ('Sensor_S1', 'A_Water_Surface', u'探头穿过水面'),
+    ('Sensor_S2', 'B_Water_Surface_S2', u'探头穿过水面'),
+    ('Sensor_S2', 'B_Water_Surface_S3', u'S3 水面已挖去低洼区'),
+    ('Sensor_S3', 'B_Water_Surface_S3', u'探头穿过水面'),
+    ('C_Road_Water_Tray', 'C_Tray_Water_Surface', u'水面在盘内'),
+    ('C_Road_Water_Tray', 'C_Tray_Inlet_Port', u'接口穿壁（设计意图）'),
+    ('C_Road_Water_Tray', 'C_Tray_Drain_Port', u'接口穿壁（设计意图）'),
+    ('C_Tray_Drain_Port', 'C_Tray_Water_Surface', u'排水口与水面相接'),
+    ('Recovery_Tank', 'Recovery_Tank_Water_Surface', u'水面在箱内'),
+    ('Recovery_Tank', 'Recovery_Tank_Inlet_Port', u'接口穿壁（设计意图）'),
+    ('Recovery_Tank', 'Recovery_Tank_Drain_Port', u'接口穿壁（设计意图）'),
+    ('Recovery_Tank', 'Recovery_Tank_Overflow_Port', u'接口穿壁（设计意图）'),
+    ('Recovery_Tank', 'Recovery_Tank_Level_Window', u'液位观察窗贴壁安装'),
+    ('Recovery_Tank_Inlet_Port', 'Recovery_Tank_Water_Surface', u'进水口与水面相接'),
+    ('Recovery_Tank_Drain_Port', 'Recovery_Tank_Drain_Handle', u'排空阀手柄'),
+    ('Linux_Main_Controller_Box', 'Linux_Mainboard_Placeholder', u'主板置于盒内'),
+    ('MCU_Sensor_Node_Box', 'MCU_Sensor_Board', u'开发板置于盒内'),
+    ('MCU_Pump_Node_Box', 'MCU_Pump_Board', u'开发板置于盒内'),
+    ('Flow_Sensor_Block', 'Pump_Suction_Port', u'流量计卡装于吸水管'),
+    ('Flow_Sensor_Block', 'Hose_Suction_1', u'软管插入流量计'),
+    ('Pump_Body', 'Pump_Suction_Port_Alt', u'备用吸水口自泵体引出'),
+    ('Hose_Suction_1', 'Pump_Suction_Port', u'软管插入接口'),
+    ('Hose_Suction_1', 'A_Tank_Suction_Port', u'软管插入接口'),
+    ('Hose_Suction_1', 'A_Water_Surface', u'软管跨越水面之上'),
+    ('Hose_Suction_2', 'Pump_Suction_Port_Alt', u'软管插入接口'),
+    ('Hose_Suction_2', 'B_Suction_Port', u'软管插入接口'),
+    ('Hose_Drain', 'Pump_Discharge_Port', u'软管插入接口'),
+    ('Hose_Drain', 'Recovery_Tank_Inlet_Port', u'软管插入接口'),
+]
+_EX = dict((frozenset((a, b)), r) for (a, b, r) in EXEMPT)
+
+
+def _ov(a, b, tol=0.5):
+    return (min(a[3], b[3]) - max(a[0], b[0]) > tol and
+            min(a[4], b[4]) - max(a[1], b[1]) > tol and
+            min(a[5], b[5]) - max(a[2], b[2]) > tol)
+
+
+def check_model():
+    """返回 (errors, exempts)：errors 为未豁免的越界/干涉"""
+    errs, oks, seen = [], [], set()
+    for name, grp, prims in CHECK:
+        for p in prims:
+            if p[0] < -1e-6 or p[1] < -1e-6 or p[2] < -1e-6:
+                errs.append(u'[越界-负坐标] %s' % name)
+            if p[3] > BASE_L + 1e-6 or p[4] > BASE_W + 1e-6:
+                errs.append(u'[越界-超出底板] %s  x1=%.1f y1=%.1f' % (name, p[3], p[4]))
+    n = len(CHECK)
+    for i in range(n):
+        for j in range(i + 1, n):
+            na, nb = CHECK[i][0], CHECK[j][0]
+            key = frozenset((na, nb))
+            hit = False
+            for pa in CHECK[i][2]:
+                for pb in CHECK[j][2]:
+                    if _ov(pa, pb):
+                        hit = True
+                        break
+                if hit:
+                    break
+            if not hit:
+                continue
+            if key in _EX:
+                if key not in seen:
+                    seen.add(key)
+                    oks.append((na, nb, _EX[key]))
+                continue
+            if key in seen:
+                continue
+            seen.add(key)
+            errs.append(u'[干涉] %s <-> %s' % (na, nb))
+    return errs, oks
+
+
+# =============================================================================
+# 6. Spreadsheet 参数表（可在 FreeCAD 界面查看 / 修改 / 重跑宏重建）
+# =============================================================================
+SHEET_INPUTS = [
+    ('PARAM_SCHEMA', u'-', u'参数表结构版本（2 = V1.1 浅坑改造；不一致时旧表不读回）'),
+    ('BASE_L', u'mm', u'底板长度'),
+    ('BASE_W', u'mm', u'底板宽度'),
+    ('BASE_T', u'mm', u'底板厚度'),
+    ('A_TANK_X', u'mm', u'A 浅坑 X 向外部尺寸'),
+    ('A_TANK_Y', u'mm', u'A 浅坑 Y 向外部尺寸'),
+    ('A_TANK_Z', u'mm', u'A 浅坑总高（顶端绝对高度 = 底板顶面 + 值）'),
+    ('A_SINK', u'mm', u'A 槽内底面相对地坪面的下沉量'),
+    ('A_CURB_H', u'mm', u'A 朝 C/B 路缘台阶高（自底板顶面算）'),
+    ('A_RAMP_RUN', u'mm', u'A 朝 C/B 缓坡水平投影'),
+    ('A_WATER_LEVEL', u'mm', u'A 区水位（相对槽内底面）'),
+    ('B_X', u'mm', u'B 草坪板 X 向长度'),
+    ('B_Y', u'mm', u'B 草坪板 Y 向长度'),
+    ('B_PLATE_T', u'mm', u'B 草坪板厚度'),
+    ('B_WATER_S3_Z', u'mm', u'B 主浅水面绝对高度'),
+    ('B_WATER_S2_Z', u'mm', u'B 低洼观察区水面高度'),
+    ('C_TRAY_WATER_LEVEL', u'mm', u'C 浅水盘水位（相对盘内底）'),
+    ('P1_BAY_X', u'mm', u'P1 挡水台阶左下角 X'),
+    ('P1_BAY_Y', u'mm', u'P1 挡水台阶左下角 Y'),
+    ('P1_BAY_LX', u'mm', u'P1 台阶 X 向长度'),
+    ('P1_BAY_LY', u'mm', u'P1 台阶 Y 向进深'),
+    ('P1_STEP_H', u'mm', u'P1 台阶高度（自底板顶面算）'),
+    ('TANK_WATER_LEVEL', u'mm', u'回收水箱水位（相对箱内底）'),
+    ('WALL', u'mm', u'水槽壁厚'),
+    ('FLOOR_T', u'mm', u'水槽底厚'),
+    ('HOSE_R', u'mm', u'软管半径'),
+    ('ROAD_T', u'mm', u'道路面层厚度'),
+    ('PUMP_L', u'mm', u'移动泵模块长度'),
+    ('PUMP_W', u'mm', u'移动泵模块宽度'),
+    ('TANK_L', u'mm', u'回收水箱长度'),
+    ('TANK_W', u'mm', u'回收水箱宽度'),
+    ('TANK_H', u'mm', u'回收水箱高度'),
+    ('ELEC_L', u'mm', u'电子控制区长度'),
+    ('ELEC_W', u'mm', u'电子控制区宽度'),
+]
+SHEET_DERIVED = [
+    ('A_WATER_Z', '=BASE_T+FLOOR_T+A_WATER_LEVEL', u'mm', u'A 水面绝对高度（自动）'),
+    ('C_TRAY_WATER_Z', '=BASE_T+ROAD_T+FLOOR_T+C_TRAY_WATER_LEVEL', u'mm',
+     u'C 浅水盘水面高度（自动）'),
+    ('REC_WATER_Z', '=BASE_T+FLOOR_T+TANK_WATER_LEVEL', u'mm', u'回收水箱水面高度（自动）'),
+]
+
+
+def build_sheet(doc):
+    s = doc.addObject('Spreadsheet::Sheet', 'Parameters')
+    s.Label = u'Parameters 参数表'
+    s.set('A1', u'参数名')
+    s.set('B1', u'值')
+    s.set('C1', u'单位')
+    s.set('D1', u'说明')
+    r = 2
+    for (k, unit, cmt) in SHEET_INPUTS:
+        s.set('A%d' % r, k)
+        s.set('B%d' % r, str(globals().get(k, 0.0)))
+        s.set('C%d' % r, unit)
+        s.set('D%d' % r, cmt)
+        try:
+            s.setAlias('B%d' % r, k)
+        except Exception as e:
+            App.Console.PrintWarning(u'参数别名失败 %s: %s\n' % (k, e))
+        r += 1
+    for (k, formula, unit, cmt) in SHEET_DERIVED:
+        s.set('A%d' % r, k)
+        s.set('B%d' % r, formula)
+        s.set('C%d' % r, unit)
+        s.set('D%d' % r, cmt)
+        try:
+            s.setAlias('B%d' % r, k)
+        except Exception as e:
+            App.Console.PrintWarning(u'参数别名失败 %s: %s\n' % (k, e))
+        r += 1
+    for col, w in (('A', 170), ('B', 90), ('C', 60), ('D', 260)):
+        try:
+            s.setColumnWidth(col, w)
+        except Exception:
+            pass
+    return s
+
+
+def read_sheet(doc):
+    """重建前把参数表里的输入值读回来（界面改动才能生效）"""
+    out = {}
+    s = doc.getObject('Parameters')
+    if s is None:
+        return out
+    try:
+        # 参数表结构版本不一致 → 旧表整体作废，避免沿用过期尺寸（如 A 槽高 55 / 水位 30）
+        if int(float(s.getContents('PARAM_SCHEMA') or 0)) != int(PARAM_SCHEMA):
+            App.Console.PrintWarning(u'参数表结构版本不符（%s != %s），按宏内默认值重建\n'
+                                     % (s.getContents('PARAM_SCHEMA'), PARAM_SCHEMA))
+            return out
+    except Exception:
+        return out
+    for (k, unit, cmt) in SHEET_INPUTS:
+        try:
+            v = s.getContents(k)
+            if v not in (None, ''):
+                out[k] = float(v)
+        except Exception:
+            pass
+    return out
+
+
+# =============================================================================
+# 7. 视图与主流程
+# =============================================================================
+def set_view():
+    if Gui is None:
+        return
+    try:
+        v = Gui.activeDocument().activeView()
+        v.viewIsometric()
+        try:
+            v.fitAll()
+        except Exception:
+            Gui.SendMsgToActiveView('ViewFit')
+    except Exception as e:
+        App.Console.PrintWarning(u'视图设置失败（不影响模型）：%s\n' % e)
+
+
+def main():
+    # ---- 打开或新建文档 ----
+    doc = None
+    saved = {}
+    try:
+        doc = App.getDocument(DOC_NAME)
+        saved = read_sheet(doc)
+        for o in reversed(list(doc.Objects)):      # 反向删除，先子后父
+            try:
+                doc.removeObject(o.Name)
+            except Exception:
+                pass
+    except Exception:
+        doc = App.newDocument(DOC_NAME)
+
+    doc.Label = u'校园积水应急排水实验台 V1.0'
+    try:
+        App.setActiveDocument(doc.Name)
+    except Exception:
+        pass
+
+    # ---- 应用参数表里改过的值 ----
+    g = globals()
+    for k, v in saved.items():
+        g[k] = v
+    g['A_APRON_T'] = g['A_SINK'] + g['FLOOR_T']
+    g['A_FLOOR_Z'] = g['BASE_T'] + g['FLOOR_T']
+    g['A_APRON_Z'] = g['BASE_T'] + g['A_APRON_T']
+    g['A_CURB_Z'] = g['BASE_T'] + g['A_CURB_H']
+    g['A_RIM_Z'] = g['BASE_T'] + g['A_TANK_Z']
+    g['P1_STEP_Z'] = g['BASE_T'] + g['P1_STEP_H']
+    g['A_WATER_Z'] = g['A_FLOOR_Z'] + g['A_WATER_LEVEL']
+    g['C_TRAY_WATER_Z'] = g['BASE_T'] + g['ROAD_T'] + g['FLOOR_T'] + g['C_TRAY_WATER_LEVEL']
+    g['REC_WATER_Z'] = g['BASE_T'] + g['FLOOR_T'] + g['TANK_WATER_LEVEL']
+    del CHECK[:]
+
+    # ---- 建模 ----
+    build_sheet(doc)
+    G = {}
+    for name in GROUPS:
+        grp = doc.addObject('App::DocumentObjectGroup', name)
+        grp.Label = name
+        G[name] = grp
+
+    build_base(doc, G)
+    build_A(doc, G)
+    build_B(doc, G)
+    build_C(doc, G)
+    build_D(doc, G)
+    build_E(doc, G)
+    build_F(doc, G)
+    build_G(doc, G)
+    build_sensors(doc, G)
+    build_hoses(doc, G)
+    build_paths(doc, G)
+    build_water(doc, G)
+    build_labels(doc, G)
+
+    doc.recompute()
+
+    # ---- 空间检查 ----
+    errs, oks = check_model()
+    msg = [u'\n============ 校园积水实验台 V1.0 建模完成 ============',
+           u'底板 %.0f x %.0f x %.0f mm，对象 %d 个，分组 %d 个' %
+           (BASE_L, BASE_W, BASE_T, len(doc.Objects), len(GROUPS)),
+           u'硬性干涉/越界：%d 处；设计意图内接触：%d 处' % (len(errs), len(oks))]
+    for e in errs:
+        msg.append(u'  × ' + e)
+    if not errs:
+        msg.append(u'  √ 未发现未登记的越界或干涉')
+    msg.append(u'提示：切换俯视图请按 3（Draft 顶视）或菜单 View > Standard views > Top')
+    msg.append(u'======================================================\n')
+    text = '\n'.join(msg)
+    App.Console.PrintMessage(text + '\n')
+
+    # ---- 保存 ----
+    if SAVE_FCSTD:
+        try:
+            doc.saveAs(SAVE_PATH)
+            App.Console.PrintMessage(u'已保存：%s\n' % SAVE_PATH)
+        except Exception as e:
+            App.Console.PrintWarning(u'保存失败（请手动 另存为）：%s\n' % e)
+
+    set_view()
+    return doc
+
+
+main()
+
+
+
+
+
