@@ -15,7 +15,9 @@
     可单独选择 / 隐藏 / 移动（软管、水面、虚线、传感器都是单个对象）。
  3. 水槽 = 真实壁厚 + 开口顶部（外盒减内腔，内腔向上打通）。
  4. 水面 = 1 mm 半透明片，Z 位置通过 Spreadsheet 表达式绑定，可现场编辑。
- 5. 通信线为架空逻辑总线（z=84），仅为逻辑关系，不代表实体线缆。
+ 5. 通信线为架空逻辑总线（z=84），仅为逻辑关系，不代表实体线缆；
+    V1.3 另加 15_Cabling：贴地实体 U 形线槽（主线槽 + 竖向干线槽 + 三路支线槽）
+    + 8 条 R2 示意线缆，线槽参与包围盒空间检查。
  6. 建模结束后自动跑一遍包围盒空间检查，结果打印到“报告视图”。
  7. 自动保存 .FCStd（路径见 SAVE_PATH，可改为 False 关闭）。
 
@@ -41,7 +43,7 @@ except NameError:                                            # 宏编辑器里�
 SAVE_PATH = os.path.join(_HERE, u'校园积水应急排水实验台_V1.0.FCStd')
 
 # 参数表结构版本：参数语义发生变化时 +1，旧参数表不再读回（避免沿用过期尺寸）
-PARAM_SCHEMA = 2
+PARAM_SCHEMA = 4
 
 # =============================================================================
 # 1. 参数区（改这里就够了）
@@ -55,20 +57,26 @@ ROAD_T, MARK_T = 3.0, 1.0         # 道路面层 / 地面标线
 HOSE_R = 4.0                      # 软管半径（外径 8）
 COMM_Z = 84.0                     # 通信线架空高度
 
-# ---- A 区：宿舍门口积水浅坑（V1.1 折中改造）----
+# ---- A 区：宿舍门口积水浅坑（V1.2 布局重排）----
 # 制约：底板只有 8 mm，无法直接向下挖 10 mm；改用"门口地坪加厚"实现真实下沉：
 #   地坪 13 mm（底板顶面 8 → 21）+ 槽底 3 mm（8 → 11）→ 槽内底面比地坪面低 10 mm。
 # 水槽总高 35 mm（8 → 43）＝原来的 55 改为矮墙；南（朝 C）/东（朝 B）两侧不砌高墙，
 # 只做 15 mm 路缘台阶（顶面 23）并在坑内做缓坡，模拟"水漫过马路牙子流向主干道"。
-A_TANK_X, A_TANK_Y, A_TANK_Z = 130.0, 145.0, 35.0   # 外廓 X/Y、总高
-A_TANK_POS = (150.0, 320.0, BASE_T)
+# 平面顺序（自西向东）：宿舍楼（基座当西/北墙）→ 自行车停放台（坑内孤岛）→ 东侧开敞水面 75 mm。
+# 本轮只改 X/Y：浅坑 X 向外廓 130 → 204，y / 35 高 / 10 下沉 / 缓坡全部不动。
+A_TANK_X, A_TANK_Y, A_TANK_Z = 204.0, 145.0, 35.0   # 外廓 X/Y、总高
+A_TANK_POS = (84.0, 320.0, BASE_T)
 A_SINK = 10.0                    # 槽内底面相对地坪面的下沉量（浅坑，"水往低处流"）
 A_APRON_T = A_SINK + FLOOR_T     # 宿舍门前地坪厚度 = 13（8 → 21）
 A_CURB_H = 15.0                  # 朝 C / B 侧路缘台阶高（自底板顶面算 → 顶面 23）
 A_RAMP_RUN = 22.0                # 朝 C / B 侧缓坡水平投影（槽底 11 升到路缘顶 23）
 A_WATER_LEVEL = 11.0             # 相对槽内底面（槽底 11 → 水面 22，比路缘顶低 1 mm）
-# 宿舍楼：移到浅坑内西北角，基座直接充当浅坑的西 / 北两面墙（水淹到楼基座）
-A_DORM = (150.0, 365.0, 60.0, 100.0, 95.0)        # x0, y0, lx, ly, lz（z 自底板顶面 8 起）
+# 宿舍楼：居最左，基座直接充当浅坑的西 / 北两面墙（水淹到楼基座）
+A_DORM = (84.0, 365.0, 60.0, 100.0, 95.0)         # x0, y0, lx, ly, lz（z 自底板顶面 8 起）
+# 自行车停放台：坑内孤岛（台面 21 = 地坪面，比水面 22 低 1 → 水漫过停车道板面）
+# 约束：A_DORM 的 x0/y1 要贴住浅坑外廓；A_BIKE 必须整个落在槽内（南离缓坡脚、北离北墙各留 ≥2）
+A_BIKE = (154.0, 350.0, 56.0, 110.0)              # x0, y0, lx, ly
+A_BIKE_BAR_L, A_BIKE_BAR_W, A_BIKE_BAR_H = 44.0, 8.0, 5.0   # 自行车占位块（3 条）
 A_APRON_BOX = (84.0, 320.0, 288.0, 480.0)         # 门前地坪外框 x0, y0, x1, y1（中间挖去槽体外廓）
 
 # ---- B 区：小树林草坪 ----
@@ -113,6 +121,21 @@ TANK_WATER_LEVEL = 12.0
 ELEC_POS = (465.0, 20.0, BASE_T)
 ELEC_L, ELEC_W, ELEC_PAD_H = 320.0, 125.0, 6.0
 
+# ---- 走线（V1.3）：贴地实体线槽 + 示意线缆 ----
+# 可用空档（实测）：底部设备带（泵 y≤90 / 水箱 y≤95 / 干燥垫 y≤145）上缘 = 145，
+# 主路下缘 = 182 → 中间 37 mm 通贯空档。主线槽 y152~172（宽 20、高 6）离垫 7 mm、
+# 离路面 10 mm，不压任何设备/路面；也不挡 MOVE_2 人工搬运线（y=150，留 2 mm）。
+# 竖干槽沿 A/B 连接路西缘 x300~320 北上到 y486，再分三支槽接 S1/S2/S3。
+CABLE_DUCT_Y = 152.0                    # 主线槽南边 Y
+CABLE_DUCT_W = 20.0                     # 主线槽宽
+CABLE_DUCT_H = 6.0                      # 线槽高（坐底板顶面 → z 8~14）
+CABLE_DUCT_X0, CABLE_DUCT_X1 = 10.0, 785.0
+CABLE_DUCT_T = 1.5                      # 槽壁 / 槽底厚
+CABLE_DUCT_TRUNK_X = 300.0              # 竖干槽西边 X（= 连接路西缘）
+CABLE_DUCT_PAD_Y = 135.0                # 电子区内走线槽南边 Y
+CABLE_PAD_GAP_X, CABLE_PAD_GAP_W = 626.0, 74.0   # 挡水圈北带出线缺口
+CABLE_R = 2.0                           # 线缆半径（外径 4）
+
 # ---- 派生：A 区竖向分层（mm） ----
 A_FLOOR_Z = BASE_T + FLOOR_T                                 # 槽内底面 11
 A_APRON_Z = BASE_T + A_APRON_T                               # 宿舍门前地坪面 21
@@ -128,7 +151,7 @@ REC_WATER_Z = BASE_T + FLOOR_T + TANK_WATER_LEVEL            # 23
 GROUPS = ['01_Base', '02_Zone_A_Dormitory', '03_Zone_B_Woodland', '04_Zone_C_Roads',
           '05_Zone_D_Highland', '06_Pump_Module', '07_Recovery_Tank', '08_Electronics',
           '09_Sensors', '10_Hoses', '11_Movement_Paths', '12_Communication_Lines',
-          '13_Water_Surface_Reference', '14_Labels']
+          '13_Water_Surface_Reference', '14_Labels', '15_Cabling']
 
 # =============================================================================
 # 2. 颜色（RGB 0~1 + 透明度 0~100）
@@ -137,6 +160,7 @@ COL = {
     'base':   ((0.86, 0.86, 0.84), 0),
     'bldg':   ((0.72, 0.79, 0.90), 0),
     'grey':   ((0.70, 0.70, 0.70), 0),
+    'bike':   ((0.70, 0.88, 0.90), 0),       # 自行车停放台：原图浅青，便于与水面区分
     'dark':   ((0.35, 0.35, 0.35), 0),
     'atank':  ((0.96, 0.64, 0.64), 45),      # A 深水槽：淡红半透明（看得见内部壁厚）
     'pipe':   ((0.55, 0.55, 0.58), 0),
@@ -164,6 +188,8 @@ COL = {
     'hose3':  ((0.25, 0.68, 0.90), 0),       # 排水软管 青蓝
     'move':   ((0.95, 0.78, 0.15), 0),       # 人工移动路线 黄
     'comm':   ((0.55, 0.25, 0.75), 0),       # 数据通信 紫
+    'duct':   ((0.45, 0.50, 0.56), 0),       # 走线槽：冷灰（与紫色盒体区分）
+    'cable':  ((0.16, 0.15, 0.14), 0),       # 线缆：近黑
 }
 
 # =============================================================================
@@ -192,23 +218,29 @@ def build_A(doc, G):
     # --- 宿舍门前地坪（13 mm，靠"地坪加厚"造出真实的 10 mm 下沉）---
     add(doc, g, 'A_Zone_Apron', a_apron(), 'grey')
 
-    # --- 自行车停放区（坐在地坪面上）---
-    add(doc, g, 'Bicycle_Parking', boxs(84, 320, A_APRON_Z, 56, 160, 2), 'grey')
-    for i, y0 in enumerate((330.0, 362.0, 394.0)):
+    # --- 自行车停放台：坑内孤岛（台面 21 = 地坪面，比水面 22 低 1 → 水漫过停车道板面）---
+    bx0, by0, blx, bly = A_BIKE
+    add(doc, g, 'Bicycle_Parking',
+        boxs(bx0, by0, A_FLOOR_Z, blx, bly, A_APRON_Z - A_FLOOR_Z), 'bike')
+    gap = (bly - 3.0 * A_BIKE_BAR_W) / 4.0
+    for i in range(3):
         add(doc, g, 'Bike_Placeholder_0%d' % (i + 1),
-            boxs(90, y0, A_APRON_Z + 2, 44, 8, 5), 'dark')
+            boxs(bx0 + (blx - A_BIKE_BAR_L) / 2.0,
+                 by0 + gap + i * (A_BIKE_BAR_W + gap), A_APRON_Z,
+                 A_BIKE_BAR_L, A_BIKE_BAR_W, A_BIKE_BAR_H), 'dark')
 
     # --- A 区浅坑槽体（底板 + 两道路缘 + 两段高墙 + 两道缓坡，一个对象、分件登记）---
     add(doc, g, 'A_Deep_Water_Tank', a_tank(), 'atank', alpha=45)
 
     # --- 接口占位件（分别独立，不并入槽体）---
+    # 注水口 / 可调排水口都落在宿舍以南那段西墙（x 84~87、y 320~365）上
     # 注水口：西墙高位（高于地坪 21，无需穿地坪预埋）
-    add(doc, g, 'A_Tank_Inlet_Port', cyls('x', 136, 335, 35, 18, 5), 'pipe')
+    add(doc, g, 'A_Tank_Inlet_Port', cyls('x', 70, 334, 35, 18, 5), 'pipe')
     # 可调自然排水口：西墙低位，穿过地坪预埋到槽底（见豁免登记）
-    add(doc, g, 'A_Tank_Drain_Port', cyls('x', 134, 355, 15, 22, 5), 'pipe')
+    add(doc, g, 'A_Tank_Drain_Port', cyls('x', 72, 352, 15, 18, 5), 'pipe')
     # 排水口滑板（调水位，贴西墙内表面）
     add(doc, g, 'A_Tank_Drain_Adjuster',
-        boxs(153, 348, A_FLOOR_Z, 3, 14, 22), 'metal')
+        boxs(87, 345, A_FLOOR_Z, 3, 14, 22), 'metal')
     # 防溢流接口：北墙近顶，从北侧散水上方穿出（不碰地坪）
     add(doc, g, 'A_Tank_Overflow_Port', cyls('y', 240, 458, 32, 16, 4), 'pipe')
     # 抽水软管①接入口：穿南路缘进坑，接口位于水面高度
@@ -399,15 +431,38 @@ def a_tank():
     return shp, prims
 
 
-def rings(x, y, z, lx, ly, lz, band):
-    """矩形环带（环形道路 / 挡水圈）"""
+def rings(x, y, z, lx, ly, lz, band, gap=None):
+    """矩形环带（环形道路 / 挡水圈）；gap=(x0, 宽) 时在北带留一个出线缺口"""
     outer = Part.makeBox(lx, ly, lz, V(x, y, z))
     inner = Part.makeBox(lx - 2 * band, ly - 2 * band, lz + 2,
                          V(x + band, y + band, z - 1))
-    prims = [_bb(x, y, z, lx, band, lz), _bb(x, y + ly - band, z, lx, band, lz),
+    s = outer.cut(inner)
+    prims = [_bb(x, y + ly - band, z, lx, band, lz),
+             _bb(x, y, z, lx, band, lz),
              _bb(x, y + band, z, band, ly - 2 * band, lz),
              _bb(x + lx - band, y + band, z, band, ly - 2 * band, lz)]
-    return outer.cut(inner), prims
+    if gap:
+        gx, gw = float(gap[0]), float(gap[1])
+        s = s.cut(Part.makeBox(gw, band + 2.0, lz + 2,
+                               V(gx, y + ly - band - 1.0, z - 1)))
+        prims = prims[1:]
+        if gx > x:
+            prims.append(_bb(x, y + ly - band, z, gx - x, band, lz))
+        if gx + gw < x + lx:
+            prims.append(_bb(gx + gw, y + ly - band, z, x + lx - gx - gw, band, lz))
+    return s, prims
+
+
+def duct(x, y, z, lx, ly, lz, t=CABLE_DUCT_T):
+    """U 形走线槽：底板 + 南/北两壁，顶部与两端开口（线缆可从任意一端进出）"""
+    shp, prims = None, []
+    for (bx, by, bz, blx, bly, blz) in ((x, y, z, lx, ly, t),
+                                        (x, y, z + t, lx, t, lz - t),
+                                        (x, y + ly - t, z + t, lx, t, lz - t)):
+        s, p = boxs(bx, by, bz, blx, bly, blz)
+        shp = s if shp is None else shp.fuse(s)
+        prims += p
+    return shp, prims
 
 
 def terrains(x, y, z, lx, ly, lz, cuts):
@@ -586,7 +641,8 @@ def build_G(doc, G):
     add(doc, g, 'Electronics_Zone_Pad',
         boxs(ex, ey, ez, ELEC_L, ELEC_W, ELEC_PAD_H), 'elec')
     add(doc, g, 'Electronics_Zone_Curb',
-        rings(ex, ey, ez + ELEC_PAD_H, ELEC_L, ELEC_W, 8, 5), 'elec2')
+        rings(ex, ey, ez + ELEC_PAD_H, ELEC_L, ELEC_W, 8, 5,
+              gap=(CABLE_PAD_GAP_X, CABLE_PAD_GAP_W)), 'elec2')
     # Linux 主控盒（较大的主板空间）
     add(doc, g, 'Linux_Main_Controller_Box',
         tanks(475, 28, 14, 150, 100, 34), 'elec')
@@ -599,7 +655,7 @@ def build_G(doc, G):
     add(doc, g, 'MCU_Pump_Board', boxs(650, 33, 17, 58, 36, 2), 'pcb')
     # 电源与接口 / 接线预留
     add(doc, g, 'Power_Interface_Block', boxs(732, 96, 14, 44, 34, 12), 'pcb')
-    add(doc, g, 'Cable_Duct_Area', boxs(730, 32, 14, 46, 50, 1), 'grey')
+    # 注：原 Cable_Duct_Area（46x50x1 薄片示意）已由 15_Cabling 的实体线槽取代
 
 
 def build_sensors(doc, G):
@@ -672,6 +728,59 @@ def build_paths(doc, G):
     add(doc, gc, 'Comm_Linux_To_MCU_Pump',
         wires([(612, 60, 48), (612, 60, 58), (664, 60, 58), (664, 60, 36)]),
         'comm', dash=True, width=1.8, register=False)
+
+
+def build_cabling(doc, G):
+    """15_Cabling：实体线槽（真几何、进空间检查）+ 示意线缆（敷设层）
+       主线槽落在设备带(y≤145)与主路(y≥182)之间的 37 mm 空档内，全程压不到任何设备/路面。"""
+    g = G['15_Cabling']
+    dy, dw, dh, dz = CABLE_DUCT_Y, CABLE_DUCT_W, CABLE_DUCT_H, BASE_T
+    tx = CABLE_DUCT_TRUNK_X
+    # ---- 线槽 ----
+    add(doc, g, 'Cable_Duct_Main',
+        duct(CABLE_DUCT_X0, dy, dz, CABLE_DUCT_X1 - CABLE_DUCT_X0, dw, dh), 'duct')
+    add(doc, g, 'Cable_Duct_Trunk_N', duct(tx, dy + dw, dz, dw, 182 - (dy + dw), dh), 'duct')
+    add(doc, g, 'Cable_Duct_Trunk_S',
+        duct(tx, 182, dz + ROAD_T, dw, 486 - 182, dh), 'duct')
+    add(doc, g, 'Cable_Duct_Pad',
+        duct(472, CABLE_DUCT_PAD_Y, dz + ELEC_PAD_H, 306, 10, dh), 'duct')
+    add(doc, g, 'Cable_Duct_Outlet', boxs(660, 145, dz, 36, 7, dh), 'duct')
+    add(doc, g, 'Cable_Duct_Branch_S1',
+        duct(240, 465, dz + A_APRON_T, 60, 12, dh), 'duct')
+    add(doc, g, 'Cable_Duct_Branch_S2',
+        duct(338, 342, dz + B_PLATE_T, 40, 12, dh), 'duct')
+    add(doc, g, 'Cable_Duct_Branch_S3',
+        duct(338, 420, dz + B_PLATE_T, 198, 12, dh), 'duct')
+
+    # ---- 线缆（R2；槽内敷设高度 = 槽底 + 3.75，正好落在 U 形腔中间）----
+    zm = dz + 3.75                 # 主线槽内 11.75
+    zt = dz + ROAD_T + 3.75        # 路面段干线槽内 14.75
+    cables = [
+        # 主控 ↔ 两个 MCU：横穿 15 mm 间隙（x625~640），贴干燥垫面
+        ('Cable_Linux_MCU_Sensor', [(622, 104, 16), (643, 104, 16)]),
+        ('Cable_Linux_MCU_Pump', [(622, 60, 16), (643, 60, 16)]),
+        # MCU_感知 → S1：盒北壁 → 垫内槽 → 出线口 → 主线槽 → 竖干槽 → 门前散水面 → S1 底座
+        ('Cable_MCU_Sensor_S1', [(680, 133, 17.75), (680, 147.5, 17.75), (680, 147.5, zm),
+                                 (680, 155, zm), (305, 155, zm), (305, 170, zm),
+                                 (305, 179, zt), (305, 470, zt), (297, 470, zt),
+                                 (297, 470, 24.75), (252, 470, 24.75), (252, 470, 45)]),
+        # MCU_感知 → S2：共用干线，到 y347 东折，爬 B 板面进 S2 底座
+        ('Cable_MCU_Sensor_S2', [(668, 133, 17.75), (668, 147.5, 17.75), (668, 147.5, zm),
+                                 (668, 160, zm), (310, 160, zm), (310, 170, zm),
+                                 (310, 179, zt), (310, 347, zt), (330, 347, zt),
+                                 (330, 347, 31.75), (378, 347, 31.75), (378, 347, 26)]),
+        # MCU_感知 → S3：共用干线，到 y428 东折
+        ('Cable_MCU_Sensor_S3', [(656, 133, 17.75), (656, 147.5, 17.75), (656, 147.5, zm),
+                                 (656, 165, zm), (315, 165, zm), (315, 170, zm),
+                                 (315, 179, zt), (315, 428, zt), (330, 428, zt),
+                                 (330, 428, 31.75), (536, 428, 31.75), (536, 432, 26)]),
+        # MCU_泵控 → 泵控制器接口：绕泵体西侧（x88）南下，从接口前上方进入
+        ('Cable_MCU_Pump_Pump', [(642, 51, 17.75), (632, 51, 17.75), (632, 147.5, 17.75),
+                                 (632, 147.5, zm), (632, 168, zm), (88, 168, zm),
+                                 (88, 20, zm), (108, 20, 17), (108, 36, 17), (108, 36, 19)]),
+    ]
+    for name, pts in cables:
+        add(doc, g, name, hoses(pts, CABLE_R), 'cable')
 
 
 def build_water(doc, G):
@@ -753,6 +862,10 @@ EXEMPT = [
     ('A_Tank_Drain_Port', 'A_Tank_Drain_Adjuster', u'可调排水口滑板'),
     ('A_Tank_Drain_Adjuster', 'A_Water_Surface', u'调水位滑板立于水中'),
     ('A_Tank_Suction_Port', 'A_Water_Surface', u'吸水口位于水面高度'),
+    ('A_Water_Surface', 'Bicycle_Parking', u'自行车停放台面 21 被水面 22 漫过 1 mm（设计意图）'),
+    ('A_Water_Surface', 'Bike_Placeholder_01', u'自行车占位块穿过水面（水漫过自行车）'),
+    ('A_Water_Surface', 'Bike_Placeholder_02', u'自行车占位块穿过水面（水漫过自行车）'),
+    ('A_Water_Surface', 'Bike_Placeholder_03', u'自行车占位块穿过水面（水漫过自行车）'),
     ('B_Woodland_Base', 'B_Raised_Mound', u'地形起伏（凹坑内凸台）'),
     ('B_Woodland_Base', 'B_Water_Surface_S3', u'水面在槽内'),
     ('B_Woodland_Base', 'B_Water_Surface_S2', u'水面在低洼内'),
@@ -791,6 +904,25 @@ EXEMPT = [
     ('Hose_Suction_2', 'B_Suction_Port', u'软管插入接口'),
     ('Hose_Drain', 'Pump_Discharge_Port', u'软管插入接口'),
     ('Hose_Drain', 'Recovery_Tank_Inlet_Port', u'软管插入接口'),
+    # ---- V1.3 走线：线槽与线缆的设计接触 ----
+    ('P3_Candidate_Stop', 'Cable_Duct_Trunk_S', u'线槽跨过候选停靠标线（标线仅 1 mm 厚）'),
+    ('Electronics_Zone_Curb', 'Cable_Duct_Pad', u'垫内走线槽贴挡水圈内侧（北带已开 74 mm 出线缺口）'),
+    ('Linux_Main_Controller_Box', 'Cable_Linux_MCU_Sensor', u'线缆经盒壁开孔出线（设计意图）'),
+    ('Linux_Main_Controller_Box', 'Cable_Linux_MCU_Pump', u'线缆经盒壁开孔出线（设计意图）'),
+    ('MCU_Sensor_Node_Box', 'Cable_Linux_MCU_Sensor', u'线缆经盒壁开孔出线（设计意图）'),
+    ('MCU_Sensor_Node_Box', 'Cable_MCU_Sensor_S1', u'线缆经盒壁开孔出线（设计意图）'),
+    ('MCU_Sensor_Node_Box', 'Cable_MCU_Sensor_S2', u'线缆经盒壁开孔出线（设计意图）'),
+    ('MCU_Sensor_Node_Box', 'Cable_MCU_Sensor_S3', u'线缆经盒壁开孔出线（设计意图）'),
+    ('MCU_Pump_Node_Box', 'Cable_Linux_MCU_Pump', u'线缆经盒壁开孔出线（设计意图）'),
+    ('MCU_Pump_Node_Box', 'Cable_MCU_Pump_Pump', u'线缆经盒壁开孔出线（设计意图）'),
+    ('Pump_Controller_Connector', 'Cable_MCU_Pump_Pump', u'线缆插入泵控制器接口（设计意图）'),
+    ('Sensor_S1', 'Cable_MCU_Sensor_S1', u'线缆进入 S1 底座接线腔'),
+    ('Sensor_S2', 'Cable_MCU_Sensor_S2', u'线缆进入 S2 底座接线腔'),
+    ('Sensor_S3', 'Cable_MCU_Sensor_S3', u'线缆进入 S3 底座接线腔'),
+    ('B_Woodland_Base', 'Cable_MCU_Sensor_S2', u'线缆下潜进入 S2 低洼（地形板此处已下沉开槽）'),
+    ('B_Woodland_Base', 'Cable_MCU_Sensor_S3', u'线缆下潜进入 S3 浅槽（地形板此处已下沉开槽）'),
+    ('B_Water_Surface_S2', 'Cable_MCU_Sensor_S2', u'线缆与 S2 探头同处穿水面'),
+    ('B_Water_Surface_S3', 'Cable_MCU_Sensor_S3', u'线缆与 S3 探头同处穿水面'),
 ]
 _EX = dict((frozenset((a, b)), r) for (a, b, r) in EXEMPT)
 
@@ -799,6 +931,22 @@ def _ov(a, b, tol=0.5):
     return (min(a[3], b[3]) - max(a[0], b[0]) > tol and
             min(a[4], b[4]) - max(a[1], b[1]) > tol and
             min(a[5], b[5]) - max(a[2], b[2]) > tol)
+
+
+_CABLE_PREFIX = 'Cable_'
+
+
+def _is_cable(name):
+    """线缆（Cable_*，但不含线槽 Cable_Duct_*）"""
+    return name.startswith(_CABLE_PREFIX) and not name.startswith('Cable_Duct_')
+
+
+def _soft_pair(na, nb):
+    """敷设层规则：线缆之间、线缆与线槽之间按敷设关系处理，不判干涉"""
+    ca, cb = _is_cable(na), _is_cable(nb)
+    if ca and cb:
+        return True
+    return (ca and nb.startswith('Cable_Duct_')) or (cb and na.startswith('Cable_Duct_'))
 
 
 def check_model():
@@ -814,6 +962,8 @@ def check_model():
     for i in range(n):
         for j in range(i + 1, n):
             na, nb = CHECK[i][0], CHECK[j][0]
+            if _soft_pair(na, nb):
+                continue
             key = frozenset((na, nb))
             hit = False
             for pa in CHECK[i][2]:
@@ -841,7 +991,7 @@ def check_model():
 # 6. Spreadsheet 参数表（可在 FreeCAD 界面查看 / 修改 / 重跑宏重建）
 # =============================================================================
 SHEET_INPUTS = [
-    ('PARAM_SCHEMA', u'-', u'参数表结构版本（2 = V1.1 浅坑改造；不一致时旧表不读回）'),
+    ('PARAM_SCHEMA', u'-', u'参数表结构版本（4 = V1.3 走线；不一致时旧表不读回）'),
     ('BASE_L', u'mm', u'底板长度'),
     ('BASE_W', u'mm', u'底板宽度'),
     ('BASE_T', u'mm', u'底板厚度'),
@@ -875,6 +1025,10 @@ SHEET_INPUTS = [
     ('TANK_H', u'mm', u'回收水箱高度'),
     ('ELEC_L', u'mm', u'电子控制区长度'),
     ('ELEC_W', u'mm', u'电子控制区宽度'),
+    ('CABLE_DUCT_Y', u'mm', u'主线槽南边 Y（设备带与主路之间空档内）'),
+    ('CABLE_DUCT_W', u'mm', u'主线槽宽'),
+    ('CABLE_DUCT_H', u'mm', u'线槽高'),
+    ('CABLE_R', u'mm', u'线缆半径'),
 ]
 SHEET_DERIVED = [
     ('A_WATER_Z', '=BASE_T+FLOOR_T+A_WATER_LEVEL', u'mm', u'A 水面绝对高度（自动）'),
@@ -1016,6 +1170,7 @@ def main():
     build_sensors(doc, G)
     build_hoses(doc, G)
     build_paths(doc, G)
+    build_cabling(doc, G)
     build_water(doc, G)
     build_labels(doc, G)
 

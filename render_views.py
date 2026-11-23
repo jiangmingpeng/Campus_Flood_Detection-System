@@ -171,6 +171,29 @@ def _projected_extent(doc, rot):
     return u_max - u_min, v_max - v_min
 
 
+def _set_camera_height(v, height):
+    """设置正交相机的视野高度（竖直方向的世界跨度）。
+
+    优先用 pivy 相机节点；但在某些解释器上下文（例如 MCP RPC 线程）里
+    v.getCameraNode() 会抛 "RuntimeError: No SWIG wrapped library loaded"。
+    此时退回 v.getCamera() 拿到的 Inventor 文本，只改写 height 一行再 setCamera()，
+    位置 / 朝向 / 裁剪面都不会变（已在 FreeCAD 1.1.4 上核对）。
+    """
+    try:
+        v.getCameraNode().height.setValue(float(height))
+        return 'pivy'
+    except Exception:
+        pass
+    lines = []
+    for ln in v.getCamera().splitlines():
+        if ln.strip().startswith('height '):
+            lines.append('  height %.5f' % float(height))
+        else:
+            lines.append(ln)
+    v.setCamera('\n'.join(lines) + '\n')
+    return 'iv-string'
+
+
 def _frame(v, rot, aspect, margin):
     """ViewFit 之后只改 height，把视野收到可见实体的投影跨度上，返回 (u_ext, v_ext)
 
@@ -182,8 +205,7 @@ def _frame(v, rot, aspect, margin):
     if ext is None:
         return None
     u_ext, v_ext = ext
-    node = v.getCameraNode()
-    node.height.setValue(max(v_ext, u_ext / float(aspect)) * float(margin))
+    _set_camera_height(v, max(v_ext, u_ext / float(aspect)) * float(margin))
     return ext
 
 
